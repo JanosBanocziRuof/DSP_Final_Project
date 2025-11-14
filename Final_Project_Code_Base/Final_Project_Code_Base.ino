@@ -118,7 +118,11 @@ void loop()
 
   // ******************************************************************
   //  Compute the output of the filter using the cascaded SOS sections
-   yv = IIR_Generic(xv); // second order systems cascade  
+   yHF = IIR_HPF(xv); // second order systems cascade  
+
+
+
+  
    
    yLF = IIR_LPF(xv); // Low Pass Filter
 
@@ -126,7 +130,10 @@ void loop()
   //  Pass the entire set of output values, the latest stats structure and the reset flag
 
   
-  statsReset = (statsLF.tick%100 == 0);
+    statsReset = (statsLF.tick%100 == 0);
+    getStats( yHF, statsHF, statsReset);
+    stdHF = statsHF.stdev;
+ 
   getStats( yLF, statsLF, statsReset);
   //  stdLF = statsLF.stdev;
 
@@ -153,14 +160,13 @@ void loop()
  
    printArray[0] = loopTick;  //  The sample number -- always print this
    printArray[1] = xv;        //  Column 2
-   
-//   printArray[2] = yLF;       //  Column 3
-//   printArray[3] = yMF;       //  Column 4, etc...
-//   printArray[4] = yHF;
-//   printArray[5] = stdLF;
-//   printArray[6] = stdMF;
-//   printArray[7] = stdHF;
-//   printArray[8] = float(alarmCode);
+   printArray[2] = yLF;       //  Column 3
+  printArray[3] = yMF;       //  Column 4, etc...
+   printArray[4] = yHF;
+   printArray[5] = stdLF;
+   printArray[6] = stdMF;
+  printArray[7] = stdHF;
+  //printArray[8] = float(alarmCode);
 
    numValues = 2;  // The number of columns to be sent to the serial monitor (or MATLAB)
 
@@ -246,15 +252,19 @@ int FIR_Generic(long inputX, int sampleNumber)
 }
 
 
-//*******************************************************************************
-float IIR_Generic(float xv)
-{  
 
+
+//*******************************************************************************
+
+
+float IIR_HPF(float xv)
+{  
+  // 5th Order HPF with a 38 BPM round off frequency 
 
   //  ***  Copy variable declarations from MATLAB generator to here  ****
 
 //Filter specific variable declarations
-const int numStages = 1;
+const int numStages = 4;
 static float G[numStages];
 static float b[numStages][3];
 static float a[numStages][3];
@@ -273,10 +283,21 @@ static float a[numStages][3];
 
 //  ***  Copy variable initialization code from MATLAB generator to here  ****
 
-// BWRTH LOW, order 2, 20 BPM
-G[0] = 0.0095258;
-b[0][0] = 1.0000000; b[0][1] = 2.0000000; b[0][2]= 1.0000000;
-a[0][0] = 1.0000000; a[0][1] =  -1.7055521; a[0][2] =  0.7436552;
+
+//BWRTH high, order 7, 38 BPM
+
+G[0] = 0.7981509;
+b[0][0] = 1.0000000; b[0][1] = -0.9927070; b[0][2]= 0.0000000;
+a[0][0] = 1.0000000; a[0][1] =  -0.6643984; a[0][2] =  0.0000000;
+G[1] = 0.7981509;
+b[1][0] = 1.0000000; b[1][1] = -2.0134915; b[1][2]= 1.0135479;
+a[1][0] = 1.0000000; a[1][1] =  -1.3665943; a[1][2] =  0.4824264;
+G[2] = 0.7981509;
+b[2][0] = 1.0000000; b[2][1] = -2.0030945; b[2][2]= 1.0031498;
+a[2][0] = 1.0000000; a[2][1] =  -1.4849456; a[2][2] =  0.6108092;
+G[3] = 0.7981509;
+b[3][0] = 1.0000000; b[3][1] = -1.9907069; b[3][2]= 0.9907608;
+a[3][0] = 1.0000000; a[3][1] =  -1.6973622; a[3][2] =  0.8412301;
 
 //  **** Stop copying MATLAB code here  ****
 
