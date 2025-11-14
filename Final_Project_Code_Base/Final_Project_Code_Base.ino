@@ -154,14 +154,13 @@ void loop()
  
    printArray[0] = loopTick;  //  The sample number -- always print this
    printArray[1] = xv;        //  Column 2
-   
    printArray[2] = yLF;       //  Column 3
   printArray[3] = yMF;       //  Column 4, etc...
    printArray[4] = yHF;
    printArray[5] = stdLF;
    printArray[6] = stdMF;
   printArray[7] = stdHF;
-  printArray[8] = float(alarmCode);
+  //printArray[8] = float(alarmCode);
 
    numValues = 2;  // The number of columns to be sent to the serial monitor (or MATLAB)
 
