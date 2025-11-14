@@ -588,3 +588,39 @@ void ISR_Sample()
 {
   sampleFlag = true;
 }
+
+long Equalizer(long xInput )
+{
+
+  int i;
+  long yN=0; //  Current output
+  const int equalizerLength = 4;
+  static long xN[equalizerLength] = {0};
+  long h[] = {1,1,-1,-1};  // Impulse response of the equalizer
+
+  //  Update the xN array
+
+  for ( i = equalizerLength-1 ; i >= 1; i-- )
+  {
+    xN[i] = xN[i - 1];
+  }
+
+  xN[0] = xInput;
+
+  //  Convolve the input with the impulse response
+
+  for ( i = 0; i <= equalizerLength-1 ; i++)
+  {
+    yN += h[i] * xN[i];
+  }
+
+  if (tick < equalizerLength)
+  {
+    return 0;
+  }
+  else
+  {
+   return yN;
+  }
+
+}
