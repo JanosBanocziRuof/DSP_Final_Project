@@ -1,5 +1,5 @@
 
-# 2EEET-425 — Digital Signal Processing: Breathing Rate Monitor (Final Project)
+# EEET-425 — Digital Signal Processing: Breathing Rate Monitor (Final Project)
 
 ## Project overview
 
