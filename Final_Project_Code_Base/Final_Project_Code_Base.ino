@@ -6,6 +6,7 @@
 
 #include <MsTimer2.h>
 #include <SPI.h>
+#include <Tone2.h>
 
 
 const int TSAMP_MSEC = 100;
@@ -51,6 +52,9 @@ void setup()
   // Handshake with MATLAB
   //Serial.println(F("%Arduino Ready"));
   //while (Serial.read() != 'g'); // spin
+
+  toneDUMMY.begin(13);
+  tone1.begin(SPKR); // Pin 12
 
   MsTimer2::set(TSAMP_MSEC, ISR_Sample); // Set sample msec, ISR name
   MsTimer2::start(); // start running the Timer
