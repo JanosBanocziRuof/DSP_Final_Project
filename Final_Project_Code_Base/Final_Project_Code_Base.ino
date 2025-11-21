@@ -119,9 +119,9 @@ void loop()
   // ******************************************************************
   //  Compute the output of the filter using the cascaded SOS sections
   xv_smoothed = Equalizer(IIR_Smoothing(xv));
-  yLF = IIR_LPF(xv); // Low Pass Filter
-  yMF = IIR_BPF(xv); // 7th order BPF
-  yHF = IIR_HPF(xv); // second order systems cascade  
+  yLF = IIR_LPF(xv_smoothed); // Low Pass Filter
+  yMF = IIR_BPF(xv_smoothed); // 7th order BPF
+  yHF = IIR_HPF(xv_smoothed); // second order systems cascade  
 
   //  Compute the latest output of the running stats for the output of the filters.
   //  Pass the entire set of output values, the latest stats structure and the reset flag
