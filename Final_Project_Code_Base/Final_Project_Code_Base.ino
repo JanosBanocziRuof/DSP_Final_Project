@@ -139,7 +139,7 @@ void loop()
   // execUsec = execUsec + (endUsec-startUsec);
 
   //  Call the alarm check function to determine what breathing range 
-    alarmCode = AlarmCheck( stdLF, stdMF, stdHF );
+  alarmCode = AlarmCheck( stdLF, stdMF, stdHF );
 
   //  Call the alarm function to turn on or off the tone
   setAlarm(alarmCode);
@@ -175,90 +175,23 @@ void loop()
 } // loop()
 
 //******************************************************************
-int AlarmCheck( float stdLF, float stdMF, float stdHF)
-{
+int AlarmCheck( float stdLF, float stdMF, float stdHF) {
 
-
-//  Your alarm check logic code will go here.
-
-  if(stdLF > stdMF && stdLF > stdHF){
-      return 0;
-  }else if (stdHF> stdLF && stdHF> stdMF){
-      return 1;
-  }else{
-    return 2;
+  if((stdLF > stdMF) && (stdLF > stdHF)){
+      return 0; // Low drone output
   }
-//return alarmCode;
-
-}  // end AlarmCheck
- 
-
-
-//*******************************************************************
-int FIR_Generic(long inputX, int sampleNumber)
-{   
-  // Starting with a generic FIR filter impelementation customize only by
-  // changing the length of the filter using MFILT and the values of the
-  // impulse response in h
-
-  // Filter type: FIR
-  
-  //
-  //  Set the constant HFXPT to the sum of the values of the impulse response
-  //  This is to keep the gain of the impulse response at 1.
-  //
-  const int HFXPT = 1, MFILT = 4;
-  
-  int h[] = {};
-
-
- 
-  int i;
-  const float INV_HFXPT = 1.0/HFXPT;
-  static long xN[MFILT] = {inputX}; 
-  long yOutput = 0;
-
-  //
-  // Right shift old xN values. Assign new inputX to xN[0];
-  //
-  for ( i = (MFILT-1); i > 0; i-- )
-  {
-    xN[i] = xN[i-1];
-  }
-  xN[0] = inputX;
-  
-  //
-  // Convolve the input sequence with the impulse response
-  //
-  
-  for ( i = 0; i < MFILT; i++)
-  {
-    
-    // Explicitly cast the impulse value and the input value to LONGs then multiply
-    // by the input value.  Sum up the output values
-    
-    yOutput = yOutput + long(h[i]) * long( xN[i] );
-  }
-
-  //  Return the output, but scale by 1/HFXPT to keep the gain to 1
-  //  Then cast back to an integer
-  //
-
-  // Skip the first MFILT  samples to avoid the transient at the beginning due to end effects
-  if (sampleNumber < MFILT ){
-    return long(0);
+  else if ((stdHF > stdLF) && (stdHF > stdMF)){
+      return 1; // High beep output
   }
   else {
-    return long(float(yOutput) * INV_HFXPT);
+    return 2; // No output
   }
-}
 
-
+}  // end AlarmCheck
 
 
 //*******************************************************************************
-float IIR_HPF(float xv)
-{  
+float IIR_HPF(float xv){
   // 7th Order HPF with a 38 BPM round off frequency 
 
   //  ***  Copy variable declarations from MATLAB generator to here  ****
@@ -269,7 +202,7 @@ float IIR_HPF(float xv)
     static float b[numStages][3];
     static float a[numStages][3];
 
-//  *** Stop copying MATLAB variable declarations here
+  //  *** Stop copying MATLAB variable declarations here
   
   int stage;
   int i;
@@ -281,10 +214,10 @@ float IIR_HPF(float xv)
 
 
 
-//  ***  Copy variable initialization code from MATLAB generator to here  ****
+  //  ***  Copy variable initialization code from MATLAB generator to here  ****
 
 
-//BWRTH high, order 7, 38 BPM
+  //BWRTH high, order 7, 38 BPM
 
     G[0] = 0.7981509;
     b[0][0] = 1.0000000; b[0][1] = -0.9927070; b[0][2]= 0.0000000;
@@ -299,7 +232,7 @@ float IIR_HPF(float xv)
     b[3][0] = 1.0000000; b[3][1] = -1.9907069; b[3][2]= 0.9907608;
     a[3][0] = 1.0000000; a[3][1] =  -1.6973622; a[3][2] =  0.8412301;
 
-//  **** Stop copying MATLAB code here  ****
+  //  **** Stop copying MATLAB code here  ****
 
 
 
@@ -324,18 +257,13 @@ float IIR_HPF(float xv)
       yM0[i] = yv;
       xv = yv;
     }
-//
-//  execUsec += micros()-startTime;
+ //
+ //  execUsec += micros()-startTime;
   
   return yv;
 }
 
-float IIR_LPF(float xv)
-{
-
-float IIR_HPF(float xv)
-{  
-  // 5th Order HPF with a 38 BPM round off frequency 
+float IIR_LPF(float xv){
 
   //  ***  Copy variable declarations from MATLAB generator to here  ****
 
@@ -345,7 +273,7 @@ float IIR_HPF(float xv)
     static float b[numStages][3];
     static float a[numStages][3];
 
-//  *** Stop copying MATLAB variable declarations here
+  //  *** Stop copying MATLAB variable declarations here
   
   int stage;
   int i;
@@ -357,25 +285,24 @@ float IIR_HPF(float xv)
 
 
 
-//  ***  Copy variable initialization code from MATLAB generator to here  ****
+  //  ***  Copy variable initialization code from MATLAB generator to here  ****
 
+    //BWRTH low, order 7, 14 BPM
 
-//BWRTH high, order 7, 38 BPM
+    G[0] = 0.0095395;
+    b[0][0] = 1.0000000; b[0][1] = 0.9921697; b[0][2]= 0.0000000;
+    a[0][0] = 1.0000000; a[0][1] =  -0.8631768; a[0][2] =  0.0000000;
+    G[1] = 0.0095395;
+    b[1][0] = 1.0000000; b[1][1] = 2.0143760; b[1][2]= 1.0144400;
+    a[1][0] = 1.0000000; a[1][1] =  -1.7484237; a[1][2] =  0.7673836;
+    G[2] = 0.0095395;
+    b[2][0] = 1.0000000; b[2][1] = 2.0033680; b[2][2]= 1.0034310;
+    a[2][0] = 1.0000000; a[2][1] =  -1.8133797; a[2][2] =  0.8330440;
+    G[3] = 0.0095395;
+    b[3][0] = 1.0000000; b[3][1] = 1.9900862; b[3][2]= 0.9901480;
+    a[3][0] = 1.0000000; a[3][1] =  -1.9162539; a[3][2] =  0.9370338;
 
-G[0] = 0.7981509;
-b[0][0] = 1.0000000; b[0][1] = -0.9927070; b[0][2]= 0.0000000;
-a[0][0] = 1.0000000; a[0][1] =  -0.6643984; a[0][2] =  0.0000000;
-G[1] = 0.7981509;
-b[1][0] = 1.0000000; b[1][1] = -2.0134915; b[1][2]= 1.0135479;
-a[1][0] = 1.0000000; a[1][1] =  -1.3665943; a[1][2] =  0.4824264;
-G[2] = 0.7981509;
-b[2][0] = 1.0000000; b[2][1] = -2.0030945; b[2][2]= 1.0031498;
-a[2][0] = 1.0000000; a[2][1] =  -1.4849456; a[2][2] =  0.6108092;
-G[3] = 0.7981509;
-b[3][0] = 1.0000000; b[3][1] = -1.9907069; b[3][2]= 0.9907608;
-a[3][0] = 1.0000000; a[3][1] =  -1.6973622; a[3][2] =  0.8412301;
-
-//  **** Stop copying MATLAB code here  ****
+  //  **** Stop copying MATLAB code here  ****
 
 
 
@@ -400,14 +327,12 @@ a[3][0] = 1.0000000; a[3][1] =  -1.6973622; a[3][2] =  0.8412301;
       yM0[i] = yv;
       xv = yv;
     }
-//
-//  execUsec += micros()-startTime;
+  //  execUsec += micros()-startTime;
   
   return yv;
 }
 
-float IIR_BPF(float xv)
-{
+float IIR_BPF(float xv){
   //  ***  Copy variable declarations from MATLAB generator to here  ****
 
     //Filter specific variable declarations
@@ -416,7 +341,7 @@ float IIR_BPF(float xv)
     static float b[numStages][3];
     static float a[numStages][3];
 
-//  *** Stop copying MATLAB variable declarations here
+  //  *** Stop copying MATLAB variable declarations here
   
   int stage;
   int i;
@@ -479,8 +404,7 @@ float IIR_BPF(float xv)
       yM0[i] = yv;
       xv = yv;
     }
-//
-//  execUsec += micros()-startTime;
+  //  execUsec += micros()-startTime;
   
   return yv;
 }
@@ -526,13 +450,20 @@ int index;
 }
 
 //*********************************************************************
-void setAlarm(int aCode, boolean isToneEn)
-{
-
-// Your alarm code goes here
-
-    
-} // setBreathRateAlarm()
+void setAlarm(int aCode){
+  if (aCode == 0){
+    tone1.play(NOTE_A4); // 440 Hz
+  }
+  else if (aCode == 1){
+    tone1.play(NOTE_C6); // 1047 Hz
+  }
+  else if (aCode == 2){
+    tone1.stop();
+  }
+  else {
+    tone1.stop();
+  }
+}
 
 //*************************************************************
 float testVector(void)
