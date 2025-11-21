@@ -36,7 +36,7 @@ bool isToneEn = false;
 
 unsigned long startUsec, endUsec, execUsec;
 
-//  Define a structure to hold statistics values for each filter band
+//Define a structure to hold statistics values for each filter band
 struct stats_t{
   int tick = 1;
   float mean, var, stdev;
@@ -57,10 +57,9 @@ void setup(){
 
   MsTimer2::set(TSAMP_MSEC, ISR_Sample); // Set sample msec, ISR name
   MsTimer2::start(); // start running the Timer
-}
+} // setup()
 
-
-////**********************************************************************
+//**********************************************************************
 void loop(){
 
   // syncSample();  // Wait for the interupt when actually reading ADC data
@@ -189,8 +188,7 @@ int AlarmCheck( float stdLF, float stdMF, float stdHF) {
     return 2; // No output
   }
 
-}  // end AlarmCheck
-
+}  // AlarmCheck
 
 //***********************************************************************
 float IIR_HPF(float xv){
@@ -263,8 +261,7 @@ float IIR_HPF(float xv){
  //  execUsec += micros()-startTime;
   
   return yv;
-}
-
+} // IIR_HPF
 
 //***********************************************************************
 float IIR_LPF(float xv){
@@ -334,8 +331,7 @@ float IIR_LPF(float xv){
   //  execUsec += micros()-startTime;
   
   return yv;
-}
-
+} // IIR_LPF
 
 //***********************************************************************
 float IIR_BPF(float xv){
@@ -413,12 +409,10 @@ float IIR_BPF(float xv){
   //  execUsec += micros()-startTime;
   
   return yv;
-}
-
+}  // IIR_BPF
 
 //*******************************************************************
-void getStats(float xv, stats_t &s, bool reset)
-{
+void getStats(float xv, stats_t &s, bool reset){
   float oldMean, oldVar;
   
   if (reset == true)
@@ -436,11 +430,10 @@ void getStats(float xv, stats_t &s, bool reset)
     s.var = oldVar + (xv - oldMean)*(xv - s.mean);      
   }
   s.tick++;  
-}
+}  // getStats
 
 //*******************************************************************
-float analogReadDitherAve(void)
-{ 
+float analogReadDitherAve(void){ 
  
   float sum = 0.0;
   int index;
@@ -454,7 +447,7 @@ float analogReadDitherAve(void)
   }
   return sum/NUM_SUBSAMPLES; // averaged subsamples 
 
-}
+}  // analogReadDitherAve
 
 //*********************************************************************
 void setAlarm(int aCode){
@@ -470,7 +463,7 @@ void setAlarm(int aCode){
   else {
     tone1.stop();
   }
-}
+}  // setAlarm
 
 //*************************************************************
 float testVector(void){
@@ -515,7 +508,7 @@ float testVector(void){
   //degC += 1.0*(tick/100.0); // drift: degC / 10sec
   //degC += 0.1*((random(0,101)-50.0)/29.0); // stdev scaled from 1.0
   return degC;
-}
+}  // testVector
 
 //*******************************************************************
 void configureArduino(void){
@@ -528,7 +521,7 @@ void configureArduino(void){
   analogReference(INTERNAL); // DEFAULT, INTERNAL
   analogRead(LM61); // read and discard to prime ADC registers
   Serial.begin(115200); // 11 char/msec 
-}
+}  // configureArduino
 
 //**********************************************************************
 void WriteToSerial( int numValues, float dataArray[] ){
@@ -546,7 +539,7 @@ void WriteToSerial( int numValues, float dataArray[] ){
   Serial.print('\n');
   delay(20);
 
-}  // end WriteToMATLAB
+}  // WriteToMATLAB
 
 ////**********************************************************************
 float ReadFromMATLAB(){
@@ -576,15 +569,15 @@ float ReadFromMATLAB(){
   inputString[charCount] = 0;
   return atof(inputString);
 
-} // end ReadFromMATLAB
+} // ReadFromMATLAB
 
 //*******************************************************************
 void syncSample(void){
   while (sampleFlag == false); // spin until ISR trigger
   sampleFlag = false;          // disarm flag: enforce dwell  
-}
+}  // syncSample
 
 //**********************************************************************
 void ISR_Sample(){
   sampleFlag = true;
-}
+}  // ISR_Sample
