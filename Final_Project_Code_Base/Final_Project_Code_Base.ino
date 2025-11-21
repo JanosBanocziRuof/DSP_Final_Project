@@ -6,6 +6,8 @@
 
 #include <MsTimer2.h>
 #include <SPI.h>
+#include <Tone2.h>
+#include <Tone2.h>
 
 
 const int TSAMP_MSEC = 100;
@@ -34,16 +36,14 @@ bool isToneEn = false;
 
 unsigned long startUsec, endUsec, execUsec;
 
-//  Define a structure to hold statistics values for each filter band
-struct stats_t
-{
+//Define a structure to hold statistics values for each filter band
+struct stats_t{
   int tick = 1;
   float mean, var, stdev;
 } statsLF, statsMF, statsHF;
 
 //**********************************************************************
-void setup()
-{
+void setup(){
 
   configureArduino();
   Serial.begin(115200);delay(5);
@@ -52,14 +52,15 @@ void setup()
   //Serial.println(F("%Arduino Ready"));
   //while (Serial.read() != 'g'); // spin
 
+  toneDUMMY.begin(13);
+  tone1.begin(SPKR); // Pin 12
+
   MsTimer2::set(TSAMP_MSEC, ISR_Sample); // Set sample msec, ISR name
   MsTimer2::start(); // start running the Timer
-}
+} // setup()
 
-
-////**********************************************************************
-void loop()
-{
+//**********************************************************************
+void loop(){
 
   // syncSample();  // Wait for the interupt when actually reading ADC data
 
@@ -189,10 +190,9 @@ int AlarmCheck( float stdLF, float stdMF, float stdHF) {
     return 2; // No output
   }
 
-}  // end AlarmCheck
+}  // AlarmCheck
 
-
-//*******************************************************************************
+//***********************************************************************
 float IIR_HPF(float xv){
   // 7th Order HPF with a 38 BPM round off frequency 
 
@@ -263,8 +263,9 @@ float IIR_HPF(float xv){
  //  execUsec += micros()-startTime;
   
   return yv;
-}
+} // IIR_HPF
 
+//***********************************************************************
 float IIR_LPF(float xv){
 
   //  ***  Copy variable declarations from MATLAB generator to here  ****
@@ -332,8 +333,9 @@ float IIR_LPF(float xv){
   //  execUsec += micros()-startTime;
   
   return yv;
-}
+} // IIR_LPF
 
+//***********************************************************************
 float IIR_BPF(float xv){
   //  ***  Copy variable declarations from MATLAB generator to here  ****
 
@@ -409,11 +411,10 @@ float IIR_BPF(float xv){
   //  execUsec += micros()-startTime;
   
   return yv;
-}
+}  // IIR_BPF
 
 //*******************************************************************
-void getStats(float xv, stats_t &s, bool reset)
-{
+void getStats(float xv, stats_t &s, bool reset){
   float oldMean, oldVar;
   
   if (reset == true)
@@ -431,14 +432,13 @@ void getStats(float xv, stats_t &s, bool reset)
     s.var = oldVar + (xv - oldMean)*(xv - s.mean);      
   }
   s.tick++;  
-}
+}  // getStats
 
 //*******************************************************************
-float analogReadDitherAve(void)
-{ 
+float analogReadDitherAve(void){ 
  
-float sum = 0.0;
-int index;
+  float sum = 0.0;
+  int index;
   for (int i = 0; i < NUM_SUBSAMPLES; i++)
   {
     index = i;
@@ -449,7 +449,7 @@ int index;
   }
   return sum/NUM_SUBSAMPLES; // averaged subsamples 
 
-}
+}  // analogReadDitherAve
 
 //*********************************************************************
 void setAlarm(int aCode){
@@ -465,11 +465,10 @@ void setAlarm(int aCode){
   else {
     tone1.stop();
   }
-}
+}  // setAlarm
 
 //*************************************************************
-float testVector(void)
-{
+float testVector(void){
   // Variable rate sinusoidal input
   // Specify segment frequencies in bpm.
   // Test each frequency for nominally 60 seconds.
@@ -511,11 +510,10 @@ float testVector(void)
   //degC += 1.0*(tick/100.0); // drift: degC / 10sec
   //degC += 0.1*((random(0,101)-50.0)/29.0); // stdev scaled from 1.0
   return degC;
-}
+}  // testVector
 
 //*******************************************************************
-void configureArduino(void)
-{
+void configureArduino(void){
   pinMode(DAC0,OUTPUT); digitalWrite(DAC0,LOW);
   pinMode(DAC1,OUTPUT); digitalWrite(DAC1,LOW);
   pinMode(DAC2,OUTPUT); digitalWrite(DAC2,LOW);
@@ -525,12 +523,10 @@ void configureArduino(void)
   analogReference(INTERNAL); // DEFAULT, INTERNAL
   analogRead(LM61); // read and discard to prime ADC registers
   Serial.begin(115200); // 11 char/msec 
-}
-
+}  // configureArduino
 
 //**********************************************************************
-void WriteToSerial( int numValues, float dataArray[] )
-{
+void WriteToSerial( int numValues, float dataArray[] ){
 
   int index=0; 
   for (index = 0; index < numValues; index++)
@@ -545,11 +541,10 @@ void WriteToSerial( int numValues, float dataArray[] )
   Serial.print('\n');
   delay(20);
 
-}  // end WriteToMATLAB
+}  // WriteToMATLAB
 
 ////**********************************************************************
-float ReadFromMATLAB()
-{
+float ReadFromMATLAB(){
   int charCount;
   bool readComplete = false;
   char inputString[80], inChar;
@@ -576,20 +571,18 @@ float ReadFromMATLAB()
   inputString[charCount] = 0;
   return atof(inputString);
 
-} // end ReadFromMATLAB
+} // ReadFromMATLAB
 
 //*******************************************************************
-void syncSample(void)
-{
+void syncSample(void){
   while (sampleFlag == false); // spin until ISR trigger
   sampleFlag = false;          // disarm flag: enforce dwell  
-}
+}  // syncSample
 
 //**********************************************************************
-void ISR_Sample()
-{
+void ISR_Sample(){
   sampleFlag = true;
-}
+}  // ISR_Sample
 
 long Equalizer(long xInput )
 {
