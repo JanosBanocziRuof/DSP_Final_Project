@@ -8,6 +8,9 @@
 #include <SPI.h>
 #include <Tone2.h>
 
+Tone toneDUMMY;
+Tone tone1;
+
 const int TSAMP_MSEC = 100;
 const int NUM_SAMPLES = 900;  // 3600;
 const int NUM_SUBSAMPLES = 160;
