@@ -7,6 +7,7 @@
 #include <MsTimer2.h>
 #include <SPI.h>
 #include <Tone2.h>
+#include <Tone2.h>
 
 
 const int TSAMP_MSEC = 100;
