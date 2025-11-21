@@ -9,7 +9,6 @@
 #include <Tone2.h>
 #include <Tone2.h>
 
-
 const int TSAMP_MSEC = 100;
 const int NUM_SAMPLES = 900;  // 3600;
 const int NUM_SUBSAMPLES = 160;
@@ -22,13 +21,11 @@ volatile boolean sampleFlag = false;
 const long DATA_FXPT = 1000; // Scale value to convert from float to fixed
 const float INV_FXPT = 1.0 / DATA_FXPT; // division slow: precalculate
 
-
 int nSmpl = 1, sample;
 
 float xv, xv_smoothed, yv, yLF, yMF, yHF, stdLF, stdMF, stdHF;
 float printArray[10];
 int numValues = 0;
-
 
 int loopTick = 0;
 bool statsReset;
@@ -158,13 +155,13 @@ void loop(){
    printArray[0] = loopTick;  //  The sample number -- always print this
    printArray[1] = xv;        //  Column 2
    
-//   printArray[2] = yLF;       //  Column 3
-//   printArray[3] = yMF;       //  Column 4, etc...
-//   printArray[4] = yHF;
-//   printArray[5] = stdLF;
-//   printArray[6] = stdMF;
-//   printArray[7] = stdHF;
-//   printArray[8] = float(alarmCode);
+  //   printArray[2] = yLF;       //  Column 3
+  //   printArray[3] = yMF;       //  Column 4, etc...
+  //   printArray[4] = yHF;
+  //   printArray[5] = stdLF;
+  //   printArray[6] = stdMF;
+  //   printArray[7] = stdHF;
+  //   printArray[8] = float(alarmCode);
 
    numValues = 2;  // The number of columns to be sent to the serial monitor (or MATLAB)
 
@@ -584,8 +581,7 @@ void ISR_Sample(){
   sampleFlag = true;
 }  // ISR_Sample
 
-long Equalizer(long xInput )
-{
+long Equalizer(long xInput ){
 
   int i;
   long yN=0; //  Current output
@@ -618,22 +614,21 @@ long Equalizer(long xInput )
    return yN;
   }
 
-}
+}  // Equalizer
 
-float IIR_Smoothing(float xv)
-{  
+float IIR_Smoothing(float xv){  
 
 
   //  ***  Copy variable declarations from MATLAB generator to here  ****
 
-//Filter specific variable declarations
-const int numStages = 4;
-static float G[numStages];
-static float b[numStages][3];
-static float a[numStages][3];
+  //Filter specific variable declarations
+  const int numStages = 4;
+  static float G[numStages];
+  static float b[numStages][3];
+  static float a[numStages][3];
 
 
-//  *** Stop copying MATLAB variable declarations here
+  //  *** Stop copying MATLAB variable declarations here
   
   int stage;
   int i;
@@ -645,25 +640,25 @@ static float a[numStages][3];
 
 
 
-//  ***  Copy variable initialization code from MATLAB generator to here  ****
+  //  ***  Copy variable initialization code from MATLAB generator to here  ****
 
-// BWRTH LOW, order 2, 20 BPM
-//BWRTH low, order 7, 70 BPM
+  // BWRTH LOW, order 2, 20 BPM
+  //BWRTH low, order 7, 70 BPM
 
-G[0] = 0.1224934;
-b[0][0] = 1.0000000; b[0][1] = 0.9927070; b[0][2]= 0.0000000;
-a[0][0] = 1.0000000; a[0][1] =  -0.4452287; a[0][2] =  0.0000000;
-G[1] = 0.1224934;
-b[1][0] = 1.0000000; b[1][1] = 2.0134915; b[1][2]= 1.0135479;
-a[1][0] = 1.0000000; a[1][1] =  -0.9272701; a[1][2] =  0.2477651;
-G[2] = 0.1224934;
-b[2][0] = 1.0000000; b[2][1] = 2.0030945; b[2][2]= 1.0031498;
-a[2][0] = 1.0000000; a[2][1] =  -1.0487537; a[2][2] =  0.4112373;
-G[3] = 0.1224934;
-b[3][0] = 1.0000000; b[3][1] = 1.9907069; b[3][2]= 0.9907608;
-a[3][0] = 1.0000000; a[3][1] =  -1.2936682; a[3][2] =  0.7408023;
+  G[0] = 0.1224934;
+  b[0][0] = 1.0000000; b[0][1] = 0.9927070; b[0][2]= 0.0000000;
+  a[0][0] = 1.0000000; a[0][1] =  -0.4452287; a[0][2] =  0.0000000;
+  G[1] = 0.1224934;
+  b[1][0] = 1.0000000; b[1][1] = 2.0134915; b[1][2]= 1.0135479;
+  a[1][0] = 1.0000000; a[1][1] =  -0.9272701; a[1][2] =  0.2477651;
+  G[2] = 0.1224934;
+  b[2][0] = 1.0000000; b[2][1] = 2.0030945; b[2][2]= 1.0031498;
+  a[2][0] = 1.0000000; a[2][1] =  -1.0487537; a[2][2] =  0.4112373;
+  G[3] = 0.1224934;
+  b[3][0] = 1.0000000; b[3][1] = 1.9907069; b[3][2]= 0.9907608;
+  a[3][0] = 1.0000000; a[3][1] =  -1.2936682; a[3][2] =  0.7408023;
 
-//  **** Stop copying MATLAB code here  ****
+  //  **** Stop copying MATLAB code here  ****
 
 
 
@@ -688,8 +683,7 @@ a[3][0] = 1.0000000; a[3][1] =  -1.2936682; a[3][2] =  0.7408023;
       yM0[i] = yv;
       xv = yv;
     }
-//
-//  execUsec += micros()-startTime;
+  //  execUsec += micros()-startTime;
   
   return yv;
-}
+}  // IIR_Smoothing
