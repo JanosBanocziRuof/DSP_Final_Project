@@ -144,10 +144,10 @@ void loop()
   // execUsec = execUsec + (endUsec-startUsec);
 
   //  Call the alarm check function to determine what breathing range 
-  //  alarmCode = AlarmCheck( stdLF, stdMF, stdHF );
+    alarmCode = AlarmCheck( stdLF, stdMF, stdHF );
 
   //  Call the alarm function to turn on or off the tone
-  //setAlarm(alarmCode, isToneEn );
+  setAlarm(alarmCode);
 
   
  // To print data to the serial port, use the WriteToSerial function.  
@@ -186,7 +186,13 @@ int AlarmCheck( float stdLF, float stdMF, float stdHF)
 
 //  Your alarm check logic code will go here.
 
-  
+  if(stdLF > stdMF && stdLF > stdHF){
+      return 0;
+  }else if (stdHF> stdLF && stdHF> stdMF){
+      return 1;
+  }else{
+    return 2;
+  }
 //return alarmCode;
 
 }  // end AlarmCheck
