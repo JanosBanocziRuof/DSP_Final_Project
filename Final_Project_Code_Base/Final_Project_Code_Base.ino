@@ -23,8 +23,8 @@ const float INV_FXPT = 1.0 / DATA_FXPT; // division slow: precalculate
 
 int nSmpl = 1, sample;
 
-float xv, yv, yLF, yMF, yHF, stdLF, stdMF, stdHF;
-float printArray[9];
+float xv, xv_smoothed, yv, yLF, yMF, yHF, stdLF, stdMF, stdHF;
+float printArray[10];
 int numValues = 0;
 
 
@@ -118,6 +118,7 @@ void loop()
 
   // ******************************************************************
   //  Compute the output of the filter using the cascaded SOS sections
+  xv_smoothed = Equalizer(IIR_Smoothing(xv));
   yLF = IIR_LPF(xv); // Low Pass Filter
   yMF = IIR_BPF(xv); // 7th order BPF
   yHF = IIR_HPF(xv); // second order systems cascade  
@@ -153,15 +154,16 @@ void loop()
  //  printArray -- An array of values that are to be printed starting with the first column
  //  numValues -- An integer indicating the number of values in the array.  
  
-  printArray[0] = loopTick;  //  The sample number -- always print this
-  printArray[1] = xv;        //  Column 2
-  printArray[2] = yLF;       //  Column 3
-  printArray[3] = yMF;       //  Column 4, etc...
-  printArray[4] = yHF;
-  printArray[5] = stdLF;
-  printArray[6] = stdMF;
-  printArray[7] = stdHF;
-  //printArray[8] = float(alarmCode);
+   printArray[0] = loopTick;  //  The sample number -- always print this
+   printArray[1] = xv;        //  Column 2
+   
+//   printArray[2] = yLF;       //  Column 3
+//   printArray[3] = yMF;       //  Column 4, etc...
+//   printArray[4] = yHF;
+//   printArray[5] = stdLF;
+//   printArray[6] = stdMF;
+//   printArray[7] = stdHF;
+//   printArray[8] = float(alarmCode);
 
    numValues = 2;  // The number of columns to be sent to the serial monitor (or MATLAB)
 
@@ -587,4 +589,114 @@ void syncSample(void)
 void ISR_Sample()
 {
   sampleFlag = true;
+}
+
+long Equalizer(long xInput )
+{
+
+  int i;
+  long yN=0; //  Current output
+  const int equalizerLength = 4;
+  static long xN[equalizerLength] = {0};
+  long h[] = {1,1,-1,-1};  // Impulse response of the equalizer
+
+  //  Update the xN array
+
+  for ( i = equalizerLength-1 ; i >= 1; i-- )
+  {
+    xN[i] = xN[i - 1];
+  }
+
+  xN[0] = xInput;
+
+  //  Convolve the input with the impulse response
+
+  for ( i = 0; i <= equalizerLength-1 ; i++)
+  {
+    yN += h[i] * xN[i];
+  }
+
+  if (tick < equalizerLength)
+  {
+    return 0;
+  }
+  else
+  {
+   return yN;
+  }
+
+}
+
+float IIR_Smoothing(float xv)
+{  
+
+
+  //  ***  Copy variable declarations from MATLAB generator to here  ****
+
+//Filter specific variable declarations
+const int numStages = 4;
+static float G[numStages];
+static float b[numStages][3];
+static float a[numStages][3];
+
+
+//  *** Stop copying MATLAB variable declarations here
+  
+  int stage;
+  int i;
+  static float xM0[numStages] = {0.0}, xM1[numStages] = {0.0}, xM2[numStages] = {0.0};
+  static float yM0[numStages] = {0.0}, yM1[numStages] = {0.0}, yM2[numStages] = {0.0};
+  
+  float yv = 0.0;
+  unsigned long startTime;
+
+
+
+//  ***  Copy variable initialization code from MATLAB generator to here  ****
+
+// BWRTH LOW, order 2, 20 BPM
+//BWRTH low, order 7, 70 BPM
+
+G[0] = 0.1224934;
+b[0][0] = 1.0000000; b[0][1] = 0.9927070; b[0][2]= 0.0000000;
+a[0][0] = 1.0000000; a[0][1] =  -0.4452287; a[0][2] =  0.0000000;
+G[1] = 0.1224934;
+b[1][0] = 1.0000000; b[1][1] = 2.0134915; b[1][2]= 1.0135479;
+a[1][0] = 1.0000000; a[1][1] =  -0.9272701; a[1][2] =  0.2477651;
+G[2] = 0.1224934;
+b[2][0] = 1.0000000; b[2][1] = 2.0030945; b[2][2]= 1.0031498;
+a[2][0] = 1.0000000; a[2][1] =  -1.0487537; a[2][2] =  0.4112373;
+G[3] = 0.1224934;
+b[3][0] = 1.0000000; b[3][1] = 1.9907069; b[3][2]= 0.9907608;
+a[3][0] = 1.0000000; a[3][1] =  -1.2936682; a[3][2] =  0.7408023;
+
+//  **** Stop copying MATLAB code here  ****
+
+
+
+  //  Iterate over each second order stage.  For each stage shift the input data
+  //  buffer ( x[kk] ) by one and the output data buffer by one ( y[k] ).  Then bring in 
+  //  a new sample xv into the buffer;
+  //
+  //  Then execute the recusive filter on the buffer
+  //
+  //  y[k] = -a[2]*y[k-2] + -a[1]*y[k-1] + g*b[0]*x[k] + b[1]*x[k-1] + b[2]*x[k-2] 
+  //
+  //  Pass the output from this stage to the next stage by setting the input
+  //  variable to the next stage x to the output of the current stage y
+  //  
+  //  Repeat this for each second order stage of the filter
+
+  
+  for (i =0; i<numStages; i++)
+    {
+      yM2[i] = yM1[i]; yM1[i] = yM0[i];  xM2[i] = xM1[i]; xM1[i] = xM0[i], xM0[i] = G[i]*xv;
+      yv = -a[i][2]*yM2[i] - a[i][1]*yM1[i] + b[i][2]*xM2[i] + b[i][1]*xM1[i] + b[i][0]*xM0[i];
+      yM0[i] = yv;
+      xv = yv;
+    }
+//
+//  execUsec += micros()-startTime;
+  
+  return yv;
 }
