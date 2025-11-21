@@ -139,10 +139,10 @@ void loop()
   // execUsec = execUsec + (endUsec-startUsec);
 
   //  Call the alarm check function to determine what breathing range 
-  //  alarmCode = AlarmCheck( stdLF, stdMF, stdHF );
+    alarmCode = AlarmCheck( stdLF, stdMF, stdHF );
 
   //  Call the alarm function to turn on or off the tone
-  //setAlarm(alarmCode, isToneEn );
+  setAlarm(alarmCode);
 
   
  // To print data to the serial port, use the WriteToSerial function.  
@@ -181,7 +181,13 @@ int AlarmCheck( float stdLF, float stdMF, float stdHF)
 
 //  Your alarm check logic code will go here.
 
-  
+  if(stdLF > stdMF && stdLF > stdHF){
+      return 0;
+  }else if (stdHF> stdLF && stdHF> stdMF){
+      return 1;
+  }else{
+    return 2;
+  }
 //return alarmCode;
 
 }  // end AlarmCheck
@@ -246,6 +252,8 @@ int FIR_Generic(long inputX, int sampleNumber)
     return long(float(yOutput) * INV_HFXPT);
   }
 }
+
+
 
 
 //*******************************************************************************
@@ -325,6 +333,10 @@ float IIR_HPF(float xv)
 float IIR_LPF(float xv)
 {
 
+float IIR_HPF(float xv)
+{  
+  // 5th Order HPF with a 38 BPM round off frequency 
+
   //  ***  Copy variable declarations from MATLAB generator to here  ****
 
     //Filter specific variable declarations
@@ -347,20 +359,21 @@ float IIR_LPF(float xv)
 
 //  ***  Copy variable initialization code from MATLAB generator to here  ****
 
-    //BWRTH low, order 7, 14 BPM
 
-    G[0] = 0.0095395;
-    b[0][0] = 1.0000000; b[0][1] = 0.9921697; b[0][2]= 0.0000000;
-    a[0][0] = 1.0000000; a[0][1] =  -0.8631768; a[0][2] =  0.0000000;
-    G[1] = 0.0095395;
-    b[1][0] = 1.0000000; b[1][1] = 2.0143760; b[1][2]= 1.0144400;
-    a[1][0] = 1.0000000; a[1][1] =  -1.7484237; a[1][2] =  0.7673836;
-    G[2] = 0.0095395;
-    b[2][0] = 1.0000000; b[2][1] = 2.0033680; b[2][2]= 1.0034310;
-    a[2][0] = 1.0000000; a[2][1] =  -1.8133797; a[2][2] =  0.8330440;
-    G[3] = 0.0095395;
-    b[3][0] = 1.0000000; b[3][1] = 1.9900862; b[3][2]= 0.9901480;
-    a[3][0] = 1.0000000; a[3][1] =  -1.9162539; a[3][2] =  0.9370338;
+//BWRTH high, order 7, 38 BPM
+
+G[0] = 0.7981509;
+b[0][0] = 1.0000000; b[0][1] = -0.9927070; b[0][2]= 0.0000000;
+a[0][0] = 1.0000000; a[0][1] =  -0.6643984; a[0][2] =  0.0000000;
+G[1] = 0.7981509;
+b[1][0] = 1.0000000; b[1][1] = -2.0134915; b[1][2]= 1.0135479;
+a[1][0] = 1.0000000; a[1][1] =  -1.3665943; a[1][2] =  0.4824264;
+G[2] = 0.7981509;
+b[2][0] = 1.0000000; b[2][1] = -2.0030945; b[2][2]= 1.0031498;
+a[2][0] = 1.0000000; a[2][1] =  -1.4849456; a[2][2] =  0.6108092;
+G[3] = 0.7981509;
+b[3][0] = 1.0000000; b[3][1] = -1.9907069; b[3][2]= 0.9907608;
+a[3][0] = 1.0000000; a[3][1] =  -1.6973622; a[3][2] =  0.8412301;
 
 //  **** Stop copying MATLAB code here  ****
 
