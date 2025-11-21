@@ -9,7 +9,7 @@
 
 
 const int TSAMP_MSEC = 100;
-const int NUM_SAMPLES = 900;  // 3600;
+const int NUM_SAMPLES = 512;  // 3600;
 const int NUM_SUBSAMPLES = 160;
 const int DAC0 = 3, DAC1 = 4, DAC2 = 5, LM61 = A0, VDITH = A1;
 const int V_REF = 5.0;
@@ -70,14 +70,13 @@ void loop()
 
   float readValue, floatOutput;  //  Input data from ADC after dither averaging or from MATLAB
   long fxdInputValue, lpfInput, lpfOutput;  
-  long eqOutput;  //  Equalizer output
   int alarmCode;  //  Alarm code
 
-
+  
   // ******************************************************************
   //  When finding the impulse responses of the filters use this as an input
   //  Create a Delta function in time with the first sample a 1 and all others 0
-  xv = (loopTick == 0) ? 1.0 : 0.0; // impulse test input
+  //xv = (loopTick == 0) ? 1.0 : 0.0; // impulse test input
 
   // ******************************************************************
   //  Use this when the test vector generator is used as an input
@@ -90,7 +89,7 @@ void loop()
 
   // ******************************************************************
   //  Read input value from ADC using Dithering, and averaging
-  readValue = analogReadDitherAve();
+  xv = analogReadDitherAve();
 
 
   //  Convert the floating point number to a fixed point value.  First
@@ -119,20 +118,16 @@ void loop()
   // ******************************************************************
   //  Compute the output of the filter using the cascaded SOS sections
   xv_smoothed = Equalizer(IIR_Smoothing(xv));
-  yLF = IIR_LPF(xv); // Low Pass Filter
-  yMF = IIR_BPF(xv); // 7th order BPF
-  yHF = IIR_HPF(xv); // second order systems cascade  
+
 
   //  Compute the latest output of the running stats for the output of the filters.
   //  Pass the entire set of output values, the latest stats structure and the reset flag
 
-  statsReset = (statsLF.tick%100 == 0);
-  getStats( yLF, statsLF, statsReset);
-  stdLF = statsLF.stdev;
-  getStats( yMF, statsMF, statsReset);
-  stdMF = statsMF.stdev;
-  getStats( yHF, statsHF, statsReset);
-  stdHF = statsHF.stdev;
+  
+  //  statsReset = (statsLF.tick%100 == 0);
+  //  getStats( yv, statsLF, statsReset);
+  //  stdLF = statsLF.stdev;
+
 
   //*******************************************************************
   // Uncomment this when measuring execution times
@@ -140,10 +135,10 @@ void loop()
   // execUsec = execUsec + (endUsec-startUsec);
 
   //  Call the alarm check function to determine what breathing range 
-  alarmCode = AlarmCheck( stdLF, stdMF, stdHF );
+  //  alarmCode = AlarmCheck( stdLF, stdMF, stdHF );
 
   //  Call the alarm function to turn on or off the tone
-  setAlarm(alarmCode);
+  //setAlarm(alarmCode, isToneEn );
 
   
  // To print data to the serial port, use the WriteToSerial function.  
@@ -154,18 +149,18 @@ void loop()
  //  printArray -- An array of values that are to be printed starting with the first column
  //  numValues -- An integer indicating the number of values in the array.  
  
-   printArray[0] = loopTick;  //  The sample number -- always print this
-   printArray[1] = xv;        //  Column 2
-   
-//   printArray[2] = yLF;       //  Column 3
-//   printArray[3] = yMF;       //  Column 4, etc...
-//   printArray[4] = yHF;
-//   printArray[5] = stdLF;
-//   printArray[6] = stdMF;
-//   printArray[7] = stdHF;
-//   printArray[8] = float(alarmCode);
+   printArray[0] = loopTick;     //  The sample number -- always print this
+   printArray[1] = xv;           //  Column 2
+   printArray[2] = xv_smoothed;  //  Column 3
+//   printArray[3] = yLF;        //  Column 4, etc...
+//   printArray[4] = yMF;       
+//   printArray[5] = yHF;
+//   printArray[6] = stdLF;
+//   printArray[7] = stdMF;
+//   printArray[8] = stdHF;
+//   printArray[9] = float(alarmCode);
 
-   numValues = 2;  // The number of columns to be sent to the serial monitor (or MATLAB)
+   numValues = 3;  // The number of columns to be sent to the serial monitor (or MATLAB)
 
  WriteToSerial( numValues, printArray );  //  Write to the serial monitor (or MATLAB)
 
@@ -177,34 +172,92 @@ void loop()
 } // loop()
 
 //******************************************************************
-int AlarmCheck( float stdLF, float stdMF, float stdHF) {
+int AlarmCheck( float stdLF, float stdMF, float stdHF)
+{
 
-  if((stdLF > stdMF) && (stdLF > stdHF)){
-      return 0; // Low drone output
-  }
-  else if ((stdHF > stdLF) && (stdHF > stdMF)){
-      return 1; // High beep output
-  }
-  else {
-    return 2; // No output
-  }
+
+//  Your alarm check logic code will go here.
+
+  
+//return alarmCode;
 
 }  // end AlarmCheck
+ 
+
+
+//*******************************************************************
+int FIR_Generic(long inputX, int sampleNumber)
+{   
+  // Starting with a generic FIR filter impelementation customize only by
+  // changing the length of the filter using MFILT and the values of the
+  // impulse response in h
+
+  // Filter type: FIR
+  
+  //
+  //  Set the constant HFXPT to the sum of the values of the impulse response
+  //  This is to keep the gain of the impulse response at 1.
+  //
+  const int HFXPT = 1, MFILT = 4;
+  
+  int h[] = {};
+
+
+ 
+  int i;
+  const float INV_HFXPT = 1.0/HFXPT;
+  static long xN[MFILT] = {inputX}; 
+  long yOutput = 0;
+
+  //
+  // Right shift old xN values. Assign new inputX to xN[0];
+  //
+  for ( i = (MFILT-1); i > 0; i-- )
+  {
+    xN[i] = xN[i-1];
+  }
+   xN[0] = inputX;
+  
+  //
+  // Convolve the input sequence with the impulse response
+  //
+  
+  for ( i = 0; i < MFILT; i++)
+  {
+    
+    // Explicitly cast the impulse value and the input value to LONGs then multiply
+    // by the input value.  Sum up the output values
+    
+    yOutput = yOutput + long(h[i]) * long( xN[i] );
+  }
+
+  //  Return the output, but scale by 1/HFXPT to keep the gain to 1
+  //  Then cast back to an integer
+  //
+
+  // Skip the first MFILT  samples to avoid the transient at the beginning due to end effects
+  if (sampleNumber < MFILT ){
+    return long(0);
+  }else{
+    return long(float(yOutput) * INV_HFXPT);
+  }
+}
 
 
 //*******************************************************************************
-float IIR_HPF(float xv){
-  // 7th Order HPF with a 38 BPM round off frequency 
+float IIR_Generic(float xv)
+{  
+
 
   //  ***  Copy variable declarations from MATLAB generator to here  ****
 
-    //Filter specific variable declarations
-    const int numStages = 4;
-    static float G[numStages];
-    static float b[numStages][3];
-    static float a[numStages][3];
+//Filter specific variable declarations
+const int numStages = 1;
+static float G[numStages];
+static float b[numStages][3];
+static float a[numStages][3];
 
-  //  *** Stop copying MATLAB variable declarations here
+//  *** Stop copying MATLAB variable declarations here
   
   int stage;
   int i;
@@ -216,25 +269,14 @@ float IIR_HPF(float xv){
 
 
 
-  //  ***  Copy variable initialization code from MATLAB generator to here  ****
+//  ***  Copy variable initialization code from MATLAB generator to here  ****
 
+// BWRTH LOW, order 2, 20 BPM
+G[0] = 0.0095258;
+b[0][0] = 1.0000000; b[0][1] = 2.0000000; b[0][2]= 1.0000000;
+a[0][0] = 1.0000000; a[0][1] =  -1.7055521; a[0][2] =  0.7436552;
 
-  //BWRTH high, order 7, 38 BPM
-
-    G[0] = 0.7981509;
-    b[0][0] = 1.0000000; b[0][1] = -0.9927070; b[0][2]= 0.0000000;
-    a[0][0] = 1.0000000; a[0][1] =  -0.6643984; a[0][2] =  0.0000000;
-    G[1] = 0.7981509;
-    b[1][0] = 1.0000000; b[1][1] = -2.0134915; b[1][2]= 1.0135479;
-    a[1][0] = 1.0000000; a[1][1] =  -1.3665943; a[1][2] =  0.4824264;
-    G[2] = 0.7981509;
-    b[2][0] = 1.0000000; b[2][1] = -2.0030945; b[2][2]= 1.0031498;
-    a[2][0] = 1.0000000; a[2][1] =  -1.4849456; a[2][2] =  0.6108092;
-    G[3] = 0.7981509;
-    b[3][0] = 1.0000000; b[3][1] = -1.9907069; b[3][2]= 0.9907608;
-    a[3][0] = 1.0000000; a[3][1] =  -1.6973622; a[3][2] =  0.8412301;
-
-  //  **** Stop copying MATLAB code here  ****
+//  **** Stop copying MATLAB code here  ****
 
 
 
@@ -259,154 +301,8 @@ float IIR_HPF(float xv){
       yM0[i] = yv;
       xv = yv;
     }
- //
- //  execUsec += micros()-startTime;
-  
-  return yv;
-}
-
-float IIR_LPF(float xv){
-
-  //  ***  Copy variable declarations from MATLAB generator to here  ****
-
-    //Filter specific variable declarations
-    const int numStages = 4;
-    static float G[numStages];
-    static float b[numStages][3];
-    static float a[numStages][3];
-
-  //  *** Stop copying MATLAB variable declarations here
-  
-  int stage;
-  int i;
-  static float xM0[numStages] = {0.0}, xM1[numStages] = {0.0}, xM2[numStages] = {0.0};
-  static float yM0[numStages] = {0.0}, yM1[numStages] = {0.0}, yM2[numStages] = {0.0};
-  
-  float yv = 0.0;
-  unsigned long startTime;
-
-
-
-  //  ***  Copy variable initialization code from MATLAB generator to here  ****
-
-    //BWRTH low, order 7, 14 BPM
-
-    G[0] = 0.0095395;
-    b[0][0] = 1.0000000; b[0][1] = 0.9921697; b[0][2]= 0.0000000;
-    a[0][0] = 1.0000000; a[0][1] =  -0.8631768; a[0][2] =  0.0000000;
-    G[1] = 0.0095395;
-    b[1][0] = 1.0000000; b[1][1] = 2.0143760; b[1][2]= 1.0144400;
-    a[1][0] = 1.0000000; a[1][1] =  -1.7484237; a[1][2] =  0.7673836;
-    G[2] = 0.0095395;
-    b[2][0] = 1.0000000; b[2][1] = 2.0033680; b[2][2]= 1.0034310;
-    a[2][0] = 1.0000000; a[2][1] =  -1.8133797; a[2][2] =  0.8330440;
-    G[3] = 0.0095395;
-    b[3][0] = 1.0000000; b[3][1] = 1.9900862; b[3][2]= 0.9901480;
-    a[3][0] = 1.0000000; a[3][1] =  -1.9162539; a[3][2] =  0.9370338;
-
-  //  **** Stop copying MATLAB code here  ****
-
-
-
-  //  Iterate over each second order stage.  For each stage shift the input data
-  //  buffer ( x[kk] ) by one and the output data buffer by one ( y[k] ).  Then bring in 
-  //  a new sample xv into the buffer;
-  //
-  //  Then execute the recusive filter on the buffer
-  //
-  //  y[k] = -a[2]*y[k-2] + -a[1]*y[k-1] + g*b[0]*x[k] + b[1]*x[k-1] + b[2]*x[k-2] 
-  //
-  //  Pass the output from this stage to the next stage by setting the input
-  //  variable to the next stage x to the output of the current stage y
-  //  
-  //  Repeat this for each second order stage of the filter
-
-  
-  for (i =0; i<numStages; i++)
-    {
-      yM2[i] = yM1[i]; yM1[i] = yM0[i];  xM2[i] = xM1[i]; xM1[i] = xM0[i], xM0[i] = G[i]*xv;
-      yv = -a[i][2]*yM2[i] - a[i][1]*yM1[i] + b[i][2]*xM2[i] + b[i][1]*xM1[i] + b[i][0]*xM0[i];
-      yM0[i] = yv;
-      xv = yv;
-    }
-  //  execUsec += micros()-startTime;
-  
-  return yv;
-}
-
-float IIR_BPF(float xv){
-  //  ***  Copy variable declarations from MATLAB generator to here  ****
-
-    //Filter specific variable declarations
-    const int numStages = 7;
-    static float G[numStages];
-    static float b[numStages][3];
-    static float a[numStages][3];
-
-  //  *** Stop copying MATLAB variable declarations here
-  
-  int stage;
-  int i;
-  static float xM0[numStages] = {0.0}, xM1[numStages] = {0.0}, xM2[numStages] = {0.0};
-  static float yM0[numStages] = {0.0}, yM1[numStages] = {0.0}, yM2[numStages] = {0.0};
-  
-  float yv = 0.0;
-  unsigned long startTime;
-
-
-
-  //  ***  Copy variable initialization code from MATLAB generator to here  ****
-  
-  //BWRTH bandpass, order 7, [14 40] BPM
-  
-    G[0] = 0.1254753;
-    b[0][0] = 1.0000000; b[0][1] = 0.0003589; b[0][2]= -0.9901062;
-    a[0][0] = 1.0000000; a[0][1] =  -1.6415097; a[0][2] =  0.7323348;
-    G[1] = 0.1254753;
-    b[1][0] = 1.0000000; b[1][1] = 2.0086252; b[1][2]= 1.0086481;
-    a[1][0] = 1.0000000; a[1][1] =  -1.7051100; a[1][2] =  0.7592171;
-    G[2] = 0.1254753;
-    b[2][0] = 1.0000000; b[2][1] = 2.0021219; b[2][2]= 1.0021447;
-    a[2][0] = 1.0000000; a[2][1] =  -1.6575316; a[2][2] =  0.7882426;
-    G[3] = 0.1254753;
-    b[3][0] = 1.0000000; b[3][1] = 1.9940328; b[3][2]= 0.9940556;
-    a[3][0] = 1.0000000; a[3][1] =  -1.7990429; a[3][2] =  0.8318872;
-    G[4] = 0.1254753;
-    b[4][0] = 1.0000000; b[4][1] = -2.0092863; b[4][2]= 1.0093129;
-    a[4][0] = 1.0000000; a[4][1] =  -1.8811605; a[4][2] =  0.9055428;
-    G[5] = 0.1254753;
-    b[5][0] = 1.0000000; b[5][1] = -1.9935774; b[5][2]= 0.9936038;
-    a[5][0] = 1.0000000; a[5][1] =  -1.7532897; a[5][2] =  0.9159845;
-    G[6] = 0.1254753;
-    b[6][0] = 1.0000000; b[6][1] = -2.0022749; b[6][2]= 1.0023015;
-    a[6][0] = 1.0000000; a[6][1] =  -1.9465589; a[6][2] =  0.9680273;
-  
-  //  **** Stop copying MATLAB code here  ****
-
-
-
-  //  Iterate over each second order stage.  For each stage shift the input data
-  //  buffer ( x[kk] ) by one and the output data buffer by one ( y[k] ).  Then bring in 
-  //  a new sample xv into the buffer;
-  //
-  //  Then execute the recusive filter on the buffer
-  //
-  //  y[k] = -a[2]*y[k-2] + -a[1]*y[k-1] + g*b[0]*x[k] + b[1]*x[k-1] + b[2]*x[k-2] 
-  //
-  //  Pass the output from this stage to the next stage by setting the input
-  //  variable to the next stage x to the output of the current stage y
-  //  
-  //  Repeat this for each second order stage of the filter
-
-  
-  for (i =0; i<numStages; i++)
-    {
-      yM2[i] = yM1[i]; yM1[i] = yM0[i];  xM2[i] = xM1[i]; xM1[i] = xM0[i], xM0[i] = G[i]*xv;
-      yv = -a[i][2]*yM2[i] - a[i][1]*yM1[i] + b[i][2]*xM2[i] + b[i][1]*xM1[i] + b[i][0]*xM0[i];
-      yM0[i] = yv;
-      xv = yv;
-    }
-  //  execUsec += micros()-startTime;
+//
+//  execUsec += micros()-startTime;
   
   return yv;
 }
@@ -452,20 +348,13 @@ int index;
 }
 
 //*********************************************************************
-void setAlarm(int aCode){
-  if (aCode == 0){
-    tone1.play(NOTE_A4); // 440 Hz
-  }
-  else if (aCode == 1){
-    tone1.play(NOTE_C6); // 1047 Hz
-  }
-  else if (aCode == 2){
-    tone1.stop();
-  }
-  else {
-    tone1.stop();
-  }
-}
+void setAlarm(int aCode, boolean isToneEn)
+{
+
+// Your alarm code goes here
+
+    
+} // setBreathRateAlarm()
 
 //*************************************************************
 float testVector(void)
@@ -616,7 +505,7 @@ long Equalizer(long xInput )
     yN += h[i] * xN[i];
   }
 
-  if (tick < equalizerLength)
+  if (loopTick < equalizerLength)
   {
     return 0;
   }
@@ -654,7 +543,6 @@ static float a[numStages][3];
 
 //  ***  Copy variable initialization code from MATLAB generator to here  ****
 
-// BWRTH LOW, order 2, 20 BPM
 //BWRTH low, order 7, 70 BPM
 
 G[0] = 0.1224934;
