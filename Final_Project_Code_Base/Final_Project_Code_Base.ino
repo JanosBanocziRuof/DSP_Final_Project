@@ -6,7 +6,10 @@
 
 #include <MsTimer2.h>
 #include <SPI.h>
+#include <Tone2.h>
 
+Tone toneDUMMY;
+Tone tone1;
 
 const int TSAMP_MSEC = 100;
 const int NUM_SAMPLES = 900;  // 3600;
@@ -20,13 +23,11 @@ volatile boolean sampleFlag = false;
 const long DATA_FXPT = 1000; // Scale value to convert from float to fixed
 const float INV_FXPT = 1.0 / DATA_FXPT; // division slow: precalculate
 
-
 int nSmpl = 1, sample;
 
-float xv, yv, yLF, yMF, yHF, stdLF, stdMF, stdHF;
-float printArray[9];
+float xv, xv_smoothed, yv, yLF, yMF, yHF, stdLF, stdMF, stdHF;
+float printArray[10];
 int numValues = 0;
-
 
 int loopTick = 0;
 bool statsReset;
@@ -34,16 +35,14 @@ bool isToneEn = false;
 
 unsigned long startUsec, endUsec, execUsec;
 
-//  Define a structure to hold statistics values for each filter band
-struct stats_t
-{
+//Define a structure to hold statistics values for each filter band
+struct stats_t{
   int tick = 1;
   float mean, var, stdev;
 } statsLF, statsMF, statsHF;
 
 //**********************************************************************
-void setup()
-{
+void setup(){
 
   configureArduino();
   Serial.begin(115200);delay(5);
@@ -52,14 +51,15 @@ void setup()
   //Serial.println(F("%Arduino Ready"));
   //while (Serial.read() != 'g'); // spin
 
+  toneDUMMY.begin(13);
+  tone1.begin(SPKR); // Pin 12
+
   MsTimer2::set(TSAMP_MSEC, ISR_Sample); // Set sample msec, ISR name
   MsTimer2::start(); // start running the Timer
-}
+} // setup()
 
-
-////**********************************************************************
-void loop()
-{
+//**********************************************************************
+void loop(){
 
   // syncSample();  // Wait for the interupt when actually reading ADC data
 
@@ -118,12 +118,10 @@ void loop()
 
   // ******************************************************************
   //  Compute the output of the filter using the cascaded SOS sections
-  yLF = IIR_LPF(xv); // Low Pass Filter
-  yMF = IIR_BPF(xv); // 7th order BPF
-  yHF = IIR_HPF(xv); // second order systems cascade  
-  yLF = IIR_LPF(xv); // Low Pass Filter
-  yMF = IIR_BPF(xv); // 7th order BPF
-  yHF = IIR_HPF(xv); // second order systems cascade  
+  xv_smoothed = Equalizer(IIR_Smoothing(xv));
+  yLF = IIR_LPF(xv_smoothed); // Low Pass Filter
+  yMF = IIR_BPF(xv_smoothed); // 7th order BPF
+  yHF = IIR_HPF(xv_smoothed); // second order systems cascade  
 
   //  Compute the latest output of the running stats for the output of the filters.
   //  Pass the entire set of output values, the latest stats structure and the reset flag
@@ -156,15 +154,16 @@ void loop()
  //  printArray -- An array of values that are to be printed starting with the first column
  //  numValues -- An integer indicating the number of values in the array.  
  
-  printArray[0] = loopTick;  //  The sample number -- always print this
-  printArray[1] = xv;        //  Column 2
-  printArray[2] = yLF;       //  Column 3
-  printArray[3] = yMF;       //  Column 4, etc...
-  printArray[4] = yHF;
-  printArray[5] = stdLF;
-  printArray[6] = stdMF;
-  printArray[7] = stdHF;
-  //printArray[8] = float(alarmCode);
+   printArray[0] = loopTick;  //  The sample number -- always print this
+   printArray[1] = xv;        //  Column 2
+   
+  //   printArray[2] = yLF;       //  Column 3
+  //   printArray[3] = yMF;       //  Column 4, etc...
+  //   printArray[4] = yHF;
+  //   printArray[5] = stdLF;
+  //   printArray[6] = stdMF;
+  //   printArray[7] = stdHF;
+  //   printArray[8] = float(alarmCode);
 
    numValues = 2;  // The number of columns to be sent to the serial monitor (or MATLAB)
 
@@ -190,10 +189,9 @@ int AlarmCheck( float stdLF, float stdMF, float stdHF) {
     return 2; // No output
   }
 
-}  // end AlarmCheck
+}  // AlarmCheck
 
-
-//*******************************************************************************
+//***********************************************************************
 float IIR_HPF(float xv){
   // 7th Order HPF with a 38 BPM round off frequency 
 
@@ -264,8 +262,9 @@ float IIR_HPF(float xv){
  //  execUsec += micros()-startTime;
   
   return yv;
-}
+} // IIR_HPF
 
+//***********************************************************************
 float IIR_LPF(float xv){
 
   //  ***  Copy variable declarations from MATLAB generator to here  ****
@@ -333,8 +332,9 @@ float IIR_LPF(float xv){
   //  execUsec += micros()-startTime;
   
   return yv;
-}
+} // IIR_LPF
 
+//***********************************************************************
 float IIR_BPF(float xv){
   //  ***  Copy variable declarations from MATLAB generator to here  ****
 
@@ -410,11 +410,10 @@ float IIR_BPF(float xv){
   //  execUsec += micros()-startTime;
   
   return yv;
-}
+}  // IIR_BPF
 
 //*******************************************************************
-void getStats(float xv, stats_t &s, bool reset)
-{
+void getStats(float xv, stats_t &s, bool reset){
   float oldMean, oldVar;
   
   if (reset == true)
@@ -432,14 +431,13 @@ void getStats(float xv, stats_t &s, bool reset)
     s.var = oldVar + (xv - oldMean)*(xv - s.mean);      
   }
   s.tick++;  
-}
+}  // getStats
 
 //*******************************************************************
-float analogReadDitherAve(void)
-{ 
+float analogReadDitherAve(void){ 
  
-float sum = 0.0;
-int index;
+  float sum = 0.0;
+  int index;
   for (int i = 0; i < NUM_SUBSAMPLES; i++)
   {
     index = i;
@@ -450,7 +448,7 @@ int index;
   }
   return sum/NUM_SUBSAMPLES; // averaged subsamples 
 
-}
+}  // analogReadDitherAve
 
 //*********************************************************************
 void setAlarm(int aCode){
@@ -466,11 +464,10 @@ void setAlarm(int aCode){
   else {
     tone1.stop();
   }
-}
+}  // setAlarm
 
 //*************************************************************
-float testVector(void)
-{
+float testVector(void){
   // Variable rate sinusoidal input
   // Specify segment frequencies in bpm.
   // Test each frequency for nominally 60 seconds.
@@ -512,11 +509,10 @@ float testVector(void)
   //degC += 1.0*(tick/100.0); // drift: degC / 10sec
   //degC += 0.1*((random(0,101)-50.0)/29.0); // stdev scaled from 1.0
   return degC;
-}
+}  // testVector
 
 //*******************************************************************
-void configureArduino(void)
-{
+void configureArduino(void){
   pinMode(DAC0,OUTPUT); digitalWrite(DAC0,LOW);
   pinMode(DAC1,OUTPUT); digitalWrite(DAC1,LOW);
   pinMode(DAC2,OUTPUT); digitalWrite(DAC2,LOW);
@@ -526,12 +522,10 @@ void configureArduino(void)
   analogReference(INTERNAL); // DEFAULT, INTERNAL
   analogRead(LM61); // read and discard to prime ADC registers
   Serial.begin(115200); // 11 char/msec 
-}
-
+}  // configureArduino
 
 //**********************************************************************
-void WriteToSerial( int numValues, float dataArray[] )
-{
+void WriteToSerial( int numValues, float dataArray[] ){
 
   int index=0; 
   for (index = 0; index < numValues; index++)
@@ -546,11 +540,10 @@ void WriteToSerial( int numValues, float dataArray[] )
   Serial.print('\n');
   delay(20);
 
-}  // end WriteToMATLAB
+}  // WriteToMATLAB
 
 ////**********************************************************************
-float ReadFromMATLAB()
-{
+float ReadFromMATLAB(){
   int charCount;
   bool readComplete = false;
   char inputString[80], inChar;
@@ -577,18 +570,122 @@ float ReadFromMATLAB()
   inputString[charCount] = 0;
   return atof(inputString);
 
-} // end ReadFromMATLAB
+} // ReadFromMATLAB
 
 //*******************************************************************
-void syncSample(void)
-{
+void syncSample(void){
   while (sampleFlag == false); // spin until ISR trigger
   sampleFlag = false;          // disarm flag: enforce dwell  
-}
+}  // syncSample
 
 //**********************************************************************
-void ISR_Sample()
-{
+void ISR_Sample(){
   sampleFlag = true;
-}
+}  // ISR_Sample
 
+long Equalizer(long xInput ){
+
+  int i;
+  long yN=0; //  Current output
+  const int equalizerLength = 4;
+  static long xN[equalizerLength] = {0};
+  long h[] = {1,1,-1,-1};  // Impulse response of the equalizer
+
+  //  Update the xN array
+
+  for ( i = equalizerLength-1 ; i >= 1; i-- )
+  {
+    xN[i] = xN[i - 1];
+  }
+
+  xN[0] = xInput;
+
+  //  Convolve the input with the impulse response
+
+  for ( i = 0; i <= equalizerLength-1 ; i++)
+  {
+    yN += h[i] * xN[i];
+  }
+
+  if (tick < equalizerLength)
+  {
+    return 0;
+  }
+  else
+  {
+   return yN;
+  }
+
+}  // Equalizer
+
+float IIR_Smoothing(float xv){  
+
+
+  //  ***  Copy variable declarations from MATLAB generator to here  ****
+
+  //Filter specific variable declarations
+  const int numStages = 4;
+  static float G[numStages];
+  static float b[numStages][3];
+  static float a[numStages][3];
+
+
+  //  *** Stop copying MATLAB variable declarations here
+  
+  int stage;
+  int i;
+  static float xM0[numStages] = {0.0}, xM1[numStages] = {0.0}, xM2[numStages] = {0.0};
+  static float yM0[numStages] = {0.0}, yM1[numStages] = {0.0}, yM2[numStages] = {0.0};
+  
+  float yv = 0.0;
+  unsigned long startTime;
+
+
+
+  //  ***  Copy variable initialization code from MATLAB generator to here  ****
+
+  // BWRTH LOW, order 2, 20 BPM
+  //BWRTH low, order 7, 70 BPM
+
+  G[0] = 0.1224934;
+  b[0][0] = 1.0000000; b[0][1] = 0.9927070; b[0][2]= 0.0000000;
+  a[0][0] = 1.0000000; a[0][1] =  -0.4452287; a[0][2] =  0.0000000;
+  G[1] = 0.1224934;
+  b[1][0] = 1.0000000; b[1][1] = 2.0134915; b[1][2]= 1.0135479;
+  a[1][0] = 1.0000000; a[1][1] =  -0.9272701; a[1][2] =  0.2477651;
+  G[2] = 0.1224934;
+  b[2][0] = 1.0000000; b[2][1] = 2.0030945; b[2][2]= 1.0031498;
+  a[2][0] = 1.0000000; a[2][1] =  -1.0487537; a[2][2] =  0.4112373;
+  G[3] = 0.1224934;
+  b[3][0] = 1.0000000; b[3][1] = 1.9907069; b[3][2]= 0.9907608;
+  a[3][0] = 1.0000000; a[3][1] =  -1.2936682; a[3][2] =  0.7408023;
+
+  //  **** Stop copying MATLAB code here  ****
+
+
+
+  //  Iterate over each second order stage.  For each stage shift the input data
+  //  buffer ( x[kk] ) by one and the output data buffer by one ( y[k] ).  Then bring in 
+  //  a new sample xv into the buffer;
+  //
+  //  Then execute the recusive filter on the buffer
+  //
+  //  y[k] = -a[2]*y[k-2] + -a[1]*y[k-1] + g*b[0]*x[k] + b[1]*x[k-1] + b[2]*x[k-2] 
+  //
+  //  Pass the output from this stage to the next stage by setting the input
+  //  variable to the next stage x to the output of the current stage y
+  //  
+  //  Repeat this for each second order stage of the filter
+
+  
+  for (i =0; i<numStages; i++)
+    {
+      yM2[i] = yM1[i]; yM1[i] = yM0[i];  xM2[i] = xM1[i]; xM1[i] = xM0[i], xM0[i] = G[i]*xv;
+      yv = -a[i][2]*yM2[i] - a[i][1]*yM1[i] + b[i][2]*xM2[i] + b[i][1]*xM1[i] + b[i][0]*xM0[i];
+      yM0[i] = yv;
+      xv = yv;
+    }
+  //  execUsec += micros()-startTime;
+  
+  return yv;
+}  // IIR_Smoothing
