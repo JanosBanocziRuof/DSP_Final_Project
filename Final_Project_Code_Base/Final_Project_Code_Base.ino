@@ -103,7 +103,7 @@ void loop()
 
   eqInputFxd = long(DATA_FXPT * eqInputFLT + 0.5);
   eqOutput = Equalizer(eqInputFxd);
-  xv_smoothed = float(eqOutput);
+  xv_smoothed = float(eqOutput) * INV_FXPT;
   
 
   //  Execute the equalizer
