@@ -67,10 +67,9 @@ void loop()
   // Breathing Rate Detection
 
   // Declare variables
-
-  float readValue, floatOutput;  //  Input data from ADC after dither averaging or from MATLAB
-  long fxdInputValue, lpfInput, lpfOutput;  
-  int alarmCode;  //  Alarm code
+  long eqInputFxd, eqOutputFxd;
+  long eqOutput;     //  Equalizer output
+  int alarmCode;     //  Alarm code
 
   
   // ******************************************************************
@@ -117,7 +116,7 @@ void loop()
 
   // ******************************************************************
   //  Compute the output of the filter using the cascaded SOS sections
-  xv_smoothed = Equalizer(IIR_Smoothing(xv));
+  eqInputFxd = long(DATA_FXPT * )
 
 
   //  Compute the latest output of the running stats for the output of the filters.
