@@ -118,25 +118,20 @@ void loop()
 
   // ******************************************************************
   //  Compute the output of the filter using the cascaded SOS sections
-   yHF = IIR_HPF(xv); // second order systems cascade  
-
-
-
-  
-   
-   yLF = IIR_LPF(xv); // Low Pass Filter
+  yLF = IIR_LPF(xv); // Low Pass Filter
+  yMF = IIR_BPF(xv); // 7th order BPF
+  yHF = IIR_HPF(xv); // second order systems cascade  
 
   //  Compute the latest output of the running stats for the output of the filters.
   //  Pass the entire set of output values, the latest stats structure and the reset flag
 
-  
-    statsReset = (statsLF.tick%100 == 0);
-    getStats( yHF, statsHF, statsReset);
-    stdHF = statsHF.stdev;
- 
+  statsReset = (statsLF.tick%100 == 0);
   getStats( yLF, statsLF, statsReset);
-  //  stdLF = statsLF.stdev;
-
+  stdLF = statsLF.stdev;
+  getStats( yMF, statsMF, statsReset);
+  stdMF = statsMF.stdev;
+  getStats( yHF, statsHF, statsReset);
+  stdHF = statsHF.stdev;
 
   //*******************************************************************
   // Uncomment this when measuring execution times
@@ -158,13 +153,13 @@ void loop()
  //  printArray -- An array of values that are to be printed starting with the first column
  //  numValues -- An integer indicating the number of values in the array.  
  
-   printArray[0] = loopTick;  //  The sample number -- always print this
-   printArray[1] = xv;        //  Column 2
-   printArray[2] = yLF;       //  Column 3
+  printArray[0] = loopTick;  //  The sample number -- always print this
+  printArray[1] = xv;        //  Column 2
+  printArray[2] = yLF;       //  Column 3
   printArray[3] = yMF;       //  Column 4, etc...
-   printArray[4] = yHF;
-   printArray[5] = stdLF;
-   printArray[6] = stdMF;
+  printArray[4] = yHF;
+  printArray[5] = stdLF;
+  printArray[6] = stdMF;
   printArray[7] = stdHF;
   //printArray[8] = float(alarmCode);
 
@@ -230,7 +225,7 @@ int FIR_Generic(long inputX, int sampleNumber)
   {
     xN[i] = xN[i-1];
   }
-   xN[0] = inputX;
+  xN[0] = inputX;
   
   //
   // Convolve the input sequence with the impulse response
@@ -252,7 +247,8 @@ int FIR_Generic(long inputX, int sampleNumber)
   // Skip the first MFILT  samples to avoid the transient at the beginning due to end effects
   if (sampleNumber < MFILT ){
     return long(0);
-  }else{
+  }
+  else {
     return long(float(yOutput) * INV_HFXPT);
   }
 }
@@ -261,7 +257,81 @@ int FIR_Generic(long inputX, int sampleNumber)
 
 
 //*******************************************************************************
+float IIR_HPF(float xv)
+{  
+  // 7th Order HPF with a 38 BPM round off frequency 
 
+  //  ***  Copy variable declarations from MATLAB generator to here  ****
+
+    //Filter specific variable declarations
+    const int numStages = 4;
+    static float G[numStages];
+    static float b[numStages][3];
+    static float a[numStages][3];
+
+//  *** Stop copying MATLAB variable declarations here
+  
+  int stage;
+  int i;
+  static float xM0[numStages] = {0.0}, xM1[numStages] = {0.0}, xM2[numStages] = {0.0};
+  static float yM0[numStages] = {0.0}, yM1[numStages] = {0.0}, yM2[numStages] = {0.0};
+  
+  float yv = 0.0;
+  unsigned long startTime;
+
+
+
+//  ***  Copy variable initialization code from MATLAB generator to here  ****
+
+
+//BWRTH high, order 7, 38 BPM
+
+    G[0] = 0.7981509;
+    b[0][0] = 1.0000000; b[0][1] = -0.9927070; b[0][2]= 0.0000000;
+    a[0][0] = 1.0000000; a[0][1] =  -0.6643984; a[0][2] =  0.0000000;
+    G[1] = 0.7981509;
+    b[1][0] = 1.0000000; b[1][1] = -2.0134915; b[1][2]= 1.0135479;
+    a[1][0] = 1.0000000; a[1][1] =  -1.3665943; a[1][2] =  0.4824264;
+    G[2] = 0.7981509;
+    b[2][0] = 1.0000000; b[2][1] = -2.0030945; b[2][2]= 1.0031498;
+    a[2][0] = 1.0000000; a[2][1] =  -1.4849456; a[2][2] =  0.6108092;
+    G[3] = 0.7981509;
+    b[3][0] = 1.0000000; b[3][1] = -1.9907069; b[3][2]= 0.9907608;
+    a[3][0] = 1.0000000; a[3][1] =  -1.6973622; a[3][2] =  0.8412301;
+
+//  **** Stop copying MATLAB code here  ****
+
+
+
+  //  Iterate over each second order stage.  For each stage shift the input data
+  //  buffer ( x[kk] ) by one and the output data buffer by one ( y[k] ).  Then bring in 
+  //  a new sample xv into the buffer;
+  //
+  //  Then execute the recusive filter on the buffer
+  //
+  //  y[k] = -a[2]*y[k-2] + -a[1]*y[k-1] + g*b[0]*x[k] + b[1]*x[k-1] + b[2]*x[k-2] 
+  //
+  //  Pass the output from this stage to the next stage by setting the input
+  //  variable to the next stage x to the output of the current stage y
+  //  
+  //  Repeat this for each second order stage of the filter
+
+  
+  for (i =0; i<numStages; i++)
+    {
+      yM2[i] = yM1[i]; yM1[i] = yM0[i];  xM2[i] = xM1[i]; xM1[i] = xM0[i], xM0[i] = G[i]*xv;
+      yv = -a[i][2]*yM2[i] - a[i][1]*yM1[i] + b[i][2]*xM2[i] + b[i][1]*xM1[i] + b[i][0]*xM0[i];
+      yM0[i] = yv;
+      xv = yv;
+    }
+//
+//  execUsec += micros()-startTime;
+  
+  return yv;
+}
+
+float IIR_LPF(float xv)
+{
 
 float IIR_HPF(float xv)
 {  
@@ -269,11 +339,11 @@ float IIR_HPF(float xv)
 
   //  ***  Copy variable declarations from MATLAB generator to here  ****
 
-//Filter specific variable declarations
-const int numStages = 4;
-static float G[numStages];
-static float b[numStages][3];
-static float a[numStages][3];
+    //Filter specific variable declarations
+    const int numStages = 4;
+    static float G[numStages];
+    static float b[numStages][3];
+    static float a[numStages][3];
 
 //  *** Stop copying MATLAB variable declarations here
   
@@ -336,13 +406,12 @@ a[3][0] = 1.0000000; a[3][1] =  -1.6973622; a[3][2] =  0.8412301;
   return yv;
 }
 
-float IIR_LPF(float xv)
+float IIR_BPF(float xv)
 {
-
   //  ***  Copy variable declarations from MATLAB generator to here  ****
 
     //Filter specific variable declarations
-    const int numStages = 4;
+    const int numStages = 7;
     static float G[numStages];
     static float b[numStages][3];
     static float a[numStages][3];
@@ -359,24 +428,33 @@ float IIR_LPF(float xv)
 
 
 
-//  ***  Copy variable initialization code from MATLAB generator to here  ****
-
-    //BWRTH low, order 7, 14 BPM
-
-    G[0] = 0.0095395;
-    b[0][0] = 1.0000000; b[0][1] = 0.9921697; b[0][2]= 0.0000000;
-    a[0][0] = 1.0000000; a[0][1] =  -0.8631768; a[0][2] =  0.0000000;
-    G[1] = 0.0095395;
-    b[1][0] = 1.0000000; b[1][1] = 2.0143760; b[1][2]= 1.0144400;
-    a[1][0] = 1.0000000; a[1][1] =  -1.7484237; a[1][2] =  0.7673836;
-    G[2] = 0.0095395;
-    b[2][0] = 1.0000000; b[2][1] = 2.0033680; b[2][2]= 1.0034310;
-    a[2][0] = 1.0000000; a[2][1] =  -1.8133797; a[2][2] =  0.8330440;
-    G[3] = 0.0095395;
-    b[3][0] = 1.0000000; b[3][1] = 1.9900862; b[3][2]= 0.9901480;
-    a[3][0] = 1.0000000; a[3][1] =  -1.9162539; a[3][2] =  0.9370338;
-
-//  **** Stop copying MATLAB code here  ****
+  //  ***  Copy variable initialization code from MATLAB generator to here  ****
+  
+  //BWRTH bandpass, order 7, [14 40] BPM
+  
+    G[0] = 0.1254753;
+    b[0][0] = 1.0000000; b[0][1] = 0.0003589; b[0][2]= -0.9901062;
+    a[0][0] = 1.0000000; a[0][1] =  -1.6415097; a[0][2] =  0.7323348;
+    G[1] = 0.1254753;
+    b[1][0] = 1.0000000; b[1][1] = 2.0086252; b[1][2]= 1.0086481;
+    a[1][0] = 1.0000000; a[1][1] =  -1.7051100; a[1][2] =  0.7592171;
+    G[2] = 0.1254753;
+    b[2][0] = 1.0000000; b[2][1] = 2.0021219; b[2][2]= 1.0021447;
+    a[2][0] = 1.0000000; a[2][1] =  -1.6575316; a[2][2] =  0.7882426;
+    G[3] = 0.1254753;
+    b[3][0] = 1.0000000; b[3][1] = 1.9940328; b[3][2]= 0.9940556;
+    a[3][0] = 1.0000000; a[3][1] =  -1.7990429; a[3][2] =  0.8318872;
+    G[4] = 0.1254753;
+    b[4][0] = 1.0000000; b[4][1] = -2.0092863; b[4][2]= 1.0093129;
+    a[4][0] = 1.0000000; a[4][1] =  -1.8811605; a[4][2] =  0.9055428;
+    G[5] = 0.1254753;
+    b[5][0] = 1.0000000; b[5][1] = -1.9935774; b[5][2]= 0.9936038;
+    a[5][0] = 1.0000000; a[5][1] =  -1.7532897; a[5][2] =  0.9159845;
+    G[6] = 0.1254753;
+    b[6][0] = 1.0000000; b[6][1] = -2.0022749; b[6][2]= 1.0023015;
+    a[6][0] = 1.0000000; a[6][1] =  -1.9465589; a[6][2] =  0.9680273;
+  
+  //  **** Stop copying MATLAB code here  ****
 
 
 
