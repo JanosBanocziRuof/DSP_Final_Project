@@ -101,7 +101,9 @@ void loop()
 
   eqInputFlt = IIR_Smoothing(xv);
 
-  eqInputFxd = (DATA_FXPT * eqInputFLT + 0.5);
+  eqInputFxd = long(DATA_FXPT * eqInputFLT + 0.5);
+  eqOutput = Equalizer(eqInputFxd);
+  xv_smoothed = float(eqOutput);
   
 
   //  Execute the equalizer
