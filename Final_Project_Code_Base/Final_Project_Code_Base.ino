@@ -441,7 +441,7 @@ float testVector(void){
   const float CAL_FBPM = 10.0, CAL_AMP = 2.0; 
   
   const float FBPM[NUM_BAND] = {10.0, 30.0, 60.0, 70.0}; // LPF test
-  static float bandAmp[NUM_BAND] = {1.0, 1.0, 1.0, 1.0, 1.0};
+  static float bandAmp[NUM_BAND] = {1.0, 1.0, 1.0, 1.0};
 
   //  Determine the number of samples (around 600 ) that will give you an even number
   //  of full cycles of the sinewave.  This is done to avoid a large discontinuity 
