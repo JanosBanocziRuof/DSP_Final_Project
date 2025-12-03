@@ -67,6 +67,7 @@ void loop()
   // Breathing Rate Detection
 
   // Declare variables
+  float eqInputFlt
   long eqInputFxd, eqOutputFxd;
   long eqOutput;     //  Equalizer output
   int alarmCode;     //  Alarm code
@@ -98,6 +99,9 @@ void loop()
 
   //fxdInputValue = long(DATA_FXPT * readValue + 0.5);
 
+  eqInputFlt = IIR_Smoothing(xv);
+
+  eqInputFxd = (DATA_FXPT * eqInputFLT + 0.5);
   
 
   //  Execute the equalizer
