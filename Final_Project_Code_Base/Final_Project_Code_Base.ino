@@ -96,7 +96,7 @@ void loop(){
 
   //  Send through the equalizer, the eq function is in fixed point
   eqInputFxd = long( DATA_FXPT * eqInputFlt + 0.5 );
-  eqOutputFxd = equalizer(eqInputFxd);
+  eqOutputFxd = Equalizer(eqInputFxd);
   xv_smoothed = float(eqOutputFxd) * INV_FXPT;
 
   //*******************************************************************
@@ -546,7 +546,7 @@ void ISR_Sample(){
 }  // ISR_Sample
 
 //***********************************************************************
-long equalizer(long xInput ){
+long Equalizer(long xInput ){
   int i;
   long yN=0; //  Current output
   const int equalizerLength = 4;
