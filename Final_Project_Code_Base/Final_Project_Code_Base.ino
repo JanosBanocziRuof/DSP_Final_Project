@@ -180,6 +180,7 @@ int alarmCheck( float stdLF, float stdMF, float stdHF) {
   }
   else {
       return 3; // Even lower tone
+  }
 
 }  // alarmCheck
 
