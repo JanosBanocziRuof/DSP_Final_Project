@@ -51,8 +51,8 @@ void setup(){
   configureArduino();
 
   // Handshake with MATLAB
-  Serial.println(F("%Arduino Ready"));
-  while (Serial.read() != 'g');          //  Spin
+  //Serial.println(F("%Arduino Ready"));
+  //while (Serial.read() != 'g');          //  Spin
 
   toneDUMMY.begin(13);
   tone1.begin(SPKR);                     //  Pin 12
@@ -159,10 +159,11 @@ void loop(){
 
  WriteToSerial( numValues, printArray );  //  Write to the serial monitor (or MATLAB)
 
-  if (++loopTick >= NUM_SAMPLES){
-    //Serial.print("Average execution time (uSec) = ");Serial.println( float(execUsec)/NUM_SAMPLES );
-    while(true); // spin forever
-  }
+  //if (++loopTick >= NUM_SAMPLES){
+  //  //Serial.print("Average execution time (uSec) = ");Serial.println( float(execUsec)/NUM_SAMPLES );
+  //  while(true); // spin forever
+  //}
+  ++loopTick;
 
 } // loop()
 
