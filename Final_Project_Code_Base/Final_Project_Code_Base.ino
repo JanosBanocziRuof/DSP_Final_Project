@@ -133,7 +133,7 @@ void loop(){
   alarmCode = alarmCheck( stdLF, stdMF, stdHF );
 
   //  Call the alarm function to turn on or off the tone
-  setAlarm(alarmCode);
+  setAlarm(alarmCode, loopTick);
   
  // To print data to the serial port, use the WriteToSerial function.  
  //
@@ -423,12 +423,15 @@ float analogReadDitherAve(void){
 }  // analogReadDitherAve
 
 //*********************************************************************
-void setAlarm(int aCode){
+void setAlarm(int aCode, int loopTick){
   if (aCode == 0){
     tone1.play(NOTE_A4); // 440 Hz
   }
   else if (aCode == 1){
-    tone1.play(NOTE_C6); // 1047 Hz
+    if ((loopTick % 20) == 0){ // Beep every second
+      tone1.play(NOTE_C6); // 1047 Hz
+    }
+    else if((loopTick % 20) == 10) tone1.stop();
   }
   else if (aCode == 2){
     tone1.stop();
