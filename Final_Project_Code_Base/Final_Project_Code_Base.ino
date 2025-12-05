@@ -27,10 +27,10 @@ const float INV_FXPT = 1.0 / DATA_FXPT; // division slow: precalculate
 // filter input and output variables, and stds. instantiated all to 0.0
 float xv = 0.0, xv_smoothed = 0.0, eqOutputFlt = 0.0; //  Input
 float yv = 0.0, yLF = 0.0, yMF = 0.0, yHF = 0.0;      //  Outputs
-float stdLF = 0.0, stdMF = 0.0, stdHF = 0.0;          //  Standard deviations
+float stdLF = 0.0, stdMF = 0.0, stdHF = 0.0, stdSmoothed = 0.0; //  Standard deviations
 
 // serial monitor shenanigans
-float printArray[10];
+float printArray[11];
 int numValues = 0;
 
 int loopTick = 0;
@@ -44,7 +44,7 @@ unsigned long startUsec, endUsec, execUsec;
 struct stats_t{
   int tick = 1;
   float mean, var, stdev;
-} statsLF, statsMF, statsHF;
+} statsLF, statsMF, statsHF, statsSmoothed;
 
 //***********************************************************************
 void setup(){
@@ -121,6 +121,8 @@ void loop(){
   stdMF = statsMF.stdev;
   getStats( yHF, statsHF, statsReset);
   stdHF = statsHF.stdev;
+  getStats( xv_smoothed, statsSmoothed, statsReset);
+  stdSmoothed = statsSmoothed.stdev;
 
   //***********************************************************************
   // Uncomment this when measuring execution times
@@ -150,9 +152,10 @@ void loop(){
   printArray[6] = stdLF;
   printArray[7] = stdMF;
   printArray[8] = stdHF;
-  printArray[9] = float(alarmCode);
+  printArray[9] = stdSmoothed;
+  printArray[10] = float(alarmCode);
 
-  numValues = 10;  // The number of columns to be sent to the serial monitor (or MATLAB)
+  numValues = 11;  // The number of columns to be sent to the serial monitor (or MATLAB)
 
  WriteToSerial( numValues, printArray );  //  Write to the serial monitor (or MATLAB)
 
@@ -166,15 +169,17 @@ void loop(){
 //***********************************************************************
 int alarmCheck( float stdLF, float stdMF, float stdHF) {
 
-  if((stdLF > stdMF) && (stdLF > stdHF)){
+  if((stdLF > stdMF) && (stdLF > stdHF) && (stdLF > 1.5)){
       return 0; //  Low drone output
   }
-  else if ((stdHF > stdLF) && (stdHF > stdMF)){
+  else if ((stdHF > stdLF) && (stdHF > stdMF) && (stdHF > 1.5)){
       return 1; //  High beep output
   }
-  else {
-    return 2;   //  No output
+  else if ((stdMF > stdLF) && (stdMF > stdHF) && (stdMF > 1.5)){
+      return 2; //  No output
   }
+  else {
+      return 3; // Even lower tone
 
 }  // alarmCheck
 
@@ -425,6 +430,9 @@ void setAlarm(int aCode){
   }
   else if (aCode == 2){
     tone1.stop();
+  }
+  else if (aCode == 3){
+    tone1.play(NOTE_A3); // 220 Hz
   }
   else {
     tone1.stop();
