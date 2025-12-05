@@ -11,7 +11,7 @@ Tone tone1;
 
 // sampling parameters
 const int TSAMP_MSEC = 100;
-const int NUM_SAMPLES = 2399;  // 3600;
+const int NUM_SAMPLES = 1199; //2399;  // 3600;
 const int NUM_SUBSAMPLES = 160;
 // pin definitions
 const int DAC0 = 3, DAC1 = 4, DAC2 = 5, LM61 = A0, VDITH = A1;
@@ -80,7 +80,7 @@ void loop(){
 
   // ******************************************************************
   //  Use this when the test vector generator is used as an input
-  xv = testVector();
+  // xv = testVector();
 
 
   // ******************************************************************
@@ -89,10 +89,9 @@ void loop(){
 
   // ******************************************************************
   //  Read input value from ADC using Dithering, and averaging
-  //xv = analogReadDitherAve();
+  xv = analogReadDitherAve();
 
   //  Smooth the input signal to remove high frequency components (> 70 BPM)
-  // eqInputFlt = IIR_Smoothing(xv);
 
   //  Send through the equalizer, the eq function is in fixed point
   eqInputFxd = long( DATA_FXPT * xv + 0.5 );
@@ -439,11 +438,11 @@ float testVector(void){
   // Test each frequency for nominally 60 seconds.
   // Adjust segment intervals for nearest integer cycle count.
     
-  const int NUM_BAND = 4;
+  const int NUM_BAND = 2;
   const float CAL_FBPM = 10.0, CAL_AMP = 2.0; 
   
-  const float FBPM[NUM_BAND] = {35.0, 38.0, 40.0, 45.0}; // LPF test
-  static float bandAmp[NUM_BAND] = {1.0, 1.0, 1.0, 1.0};
+  const float FBPM[NUM_BAND] = {38.0,40.0}; // LPF test
+  static float bandAmp[NUM_BAND] = {1.0,1.0};
 
   //  Determine the number of samples (around 600 ) that will give you an even number
   //  of full cycles of the sinewave.  This is done to avoid a large discontinuity 
