@@ -67,7 +67,7 @@ void loop()
   // Breathing Rate Detection
 
   // Declare variables
-  float eqInputFlt
+  float eqInputFlt;
   long eqInputFxd, eqOutputFxd;
   long eqOutput;     //  Equalizer output
   int alarmCode;     //  Alarm code
@@ -101,7 +101,7 @@ void loop()
 
   eqInputFlt = IIR_Smoothing(xv);
 
-  eqInputFxd = long(DATA_FXPT * eqInputFLT + 0.5);
+  eqInputFxd = long(DATA_FXPT * eqInputFlt + 0.5);
   eqOutput = Equalizer(eqInputFxd);
   xv_smoothed = float(eqOutput) * INV_FXPT;
   
@@ -122,8 +122,6 @@ void loop()
 
   // ******************************************************************
   //  Compute the output of the filter using the cascaded SOS sections
-  eqInputFxd = long(DATA_FXPT * )
-
 
   //  Compute the latest output of the running stats for the output of the filters.
   //  Pass the entire set of output values, the latest stats structure and the reset flag
