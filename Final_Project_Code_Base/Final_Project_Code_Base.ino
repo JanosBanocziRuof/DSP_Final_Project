@@ -95,7 +95,7 @@ void loop(){
 
   //  Send through the equalizer, the eq function is in fixed point
   eqInputFxd = long( DATA_FXPT * xv + 0.5 );
-  eqOutputFxd = equalizer(eqInputFxd);
+  eqOutputFxd = Equalizer(eqInputFxd);
   eqOutputFlt = float(eqOutputFxd) * INV_FXPT;
 
   xv_smoothed = IIR_Smoothing(eqOutputFlt);
@@ -114,7 +114,7 @@ void loop(){
   //  Compute the latest output of the running stats for the output of the filters.
   //  Pass the entire set of output values, the latest stats structure and the reset flag
 
-  statsReset = (statsLF.tick%100 == 0);
+  statsReset = (statsLF.tick%100 == 0); // FIXME: why are we resetting every 100 samples if they are running stats?
   getStats( yLF, statsLF, statsReset);
   stdLF = statsLF.stdev;
   getStats( yMF, statsMF, statsReset);
@@ -547,7 +547,7 @@ void ISR_Sample(){
 }  // ISR_Sample
 
 //***********************************************************************
-long equalizer(long xInput ){
+long Equalizer(long xInput ){
   int i;
   long yN=0; //  Current output
   const int equalizerLength = 4;
