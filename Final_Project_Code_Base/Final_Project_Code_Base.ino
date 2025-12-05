@@ -11,7 +11,7 @@ Tone tone1;
 
 // sampling parameters
 const int TSAMP_MSEC = 100;
-const int NUM_SAMPLES = 900;  // 3600;
+const int NUM_SAMPLES = 1199; //2399;  // 3600;
 const int NUM_SUBSAMPLES = 160;
 // pin definitions
 const int DAC0 = 3, DAC1 = 4, DAC2 = 5, LM61 = A0, VDITH = A1;
@@ -25,7 +25,7 @@ const long DATA_FXPT = 1000;            // Scale value to convert from float to 
 const float INV_FXPT = 1.0 / DATA_FXPT; // division slow: precalculate
 
 // filter input and output variables, and stds. instantiated all to 0.0
-float xv = 0.0, xv_smoothed = 0.0, eqInputFlt = 0.0;  //  Input
+float xv = 0.0, xv_smoothed = 0.0, eqOutputFlt = 0.0; //  Input
 float yv = 0.0, yLF = 0.0, yMF = 0.0, yHF = 0.0;      //  Outputs
 float stdLF = 0.0, stdMF = 0.0, stdHF = 0.0;          //  Standard deviations
 
@@ -80,24 +80,25 @@ void loop(){
 
   // ******************************************************************
   //  Use this when the test vector generator is used as an input
-  //  xv = testVector();
+  // xv = testVector();
 
 
   // ******************************************************************
   //  Read input value in ADC counts  -- Get simulated data from MATLAB
-  //readValue = ReadFromMATLAB();
+  //xv = ReadFromMATLAB();
 
   // ******************************************************************
   //  Read input value from ADC using Dithering, and averaging
   xv = analogReadDitherAve();
 
   //  Smooth the input signal to remove high frequency components (> 70 BPM)
-  eqInputFlt = IIR_Smoothing(xv);
 
   //  Send through the equalizer, the eq function is in fixed point
-  eqInputFxd = long( DATA_FXPT * eqInputFlt + 0.5 );
+  eqInputFxd = long( DATA_FXPT * xv + 0.5 );
   eqOutputFxd = Equalizer(eqInputFxd);
-  xv_smoothed = float(eqOutputFxd) * INV_FXPT;
+  eqOutputFlt = float(eqOutputFxd) * INV_FXPT;
+
+  xv_smoothed = IIR_Smoothing(eqOutputFlt);
 
   //*******************************************************************
   //  Uncomment this when measuring execution times
@@ -437,11 +438,11 @@ float testVector(void){
   // Test each frequency for nominally 60 seconds.
   // Adjust segment intervals for nearest integer cycle count.
     
-  const int NUM_BAND = 6;
+  const int NUM_BAND = 2;
   const float CAL_FBPM = 10.0, CAL_AMP = 2.0; 
   
-  const float FBPM[NUM_BAND] = {5.0, 10.0, 15.0, 20.0, 30.0, 70.0}; // LPF test
-  static float bandAmp[NUM_BAND] = {1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
+  const float FBPM[NUM_BAND] = {38.0,40.0}; // LPF test
+  static float bandAmp[NUM_BAND] = {1.0,1.0};
 
   //  Determine the number of samples (around 600 ) that will give you an even number
   //  of full cycles of the sinewave.  This is done to avoid a large discontinuity 
